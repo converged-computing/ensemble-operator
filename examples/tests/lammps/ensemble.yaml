@@ -4,18 +4,17 @@ metadata:
   name: ensemble-sample
 spec:
   members:
-    - desiredSize: 2
-      maxSize: 4
-      minSize: 2
-
-      minicluster:
-        spec:
-          tasks: 2
+  - minicluster:
+      spec:
+        size: 2
+        maxSize: 4
+        minSize: 2
+        tasks: 2
     
-          # This is a list because a pod can support multiple containers
-          containers:
-          - image: ghcr.io/converged-computing/metric-lammps:latest
+        # This is a list because a pod can support multiple containers
+        containers:
+        - image: ghcr.io/converged-computing/metric-lammps:latest
 
-            # You can set the working directory if your container WORKDIR is not correct.
-            workingDir: /opt/lammps/examples/reaxff/HNS
-            command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
+          # You can set the working directory if your container WORKDIR is not correct.
+          workingDir: /opt/lammps/examples/reaxff/HNS
+          command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite

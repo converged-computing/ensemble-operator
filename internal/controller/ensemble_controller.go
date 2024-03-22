@@ -86,11 +86,13 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Ensure we have the MiniCluster (get or create!)
 	// We only have MiniCluster now, but this design can be extended to others
 	for i, member := range ensemble.Spec.Members {
+
+		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 
 			// Name is the index + ensemble name
 			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			result, err := r.ensureMiniClusterEnsemble(ctx, name, &ensemble, i, &member.MiniCluster)
+			result, err := r.ensureMiniClusterEnsemble(ctx, name, &ensemble, &member)
 			if err != nil {
 				return result, err
 			}

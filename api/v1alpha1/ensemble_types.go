@@ -18,6 +18,8 @@ package v1alpha1
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +48,14 @@ type Member struct {
 	// +optional
 	MiniCluster minicluster.MiniCluster `json:"minicluster,omitempty"`
 
+	// Baseimage for the sidecar that will monitor the queue.
+	// Ensure that the operating systems match! This defaults
+	// to rockylinux9
+	// +kubebuilder:default="rockylinux9"
+	// +default="rockylinux9"
+	// +optional
+	SidecarBase string `json:"sidecarBase"`
+
 	// JobSet as the Member
 	// +optional
 	//JobSet jobset.JobSet `json:"jobset,omitempty"`
@@ -59,21 +69,6 @@ type Member struct {
 	// +default="maintain"
 	//+optional
 	Algorithm string `json:"algorithm"`
-
-	// +kubebuilder:default=1
-	// +default=1
-	//+optional
-	DesiredSize int32 `json:"desiredSize,omitempty"`
-
-	// +kubebuilder:default=1
-	// +default=1
-	//+optional
-	MinSize int32 `json:"minSize,omitempty"`
-
-	// +kubebuilder:default=1
-	// +default=1
-	//+optional
-	MaxSize int32 `json:"maxSize,omitempty"`
 }
 
 // EnsembleStatus defines the observed state of Ensemble
@@ -94,13 +89,32 @@ func (e *Ensemble) Validate() error {
 		return fmt.Errorf("ensemble must have at least one member")
 	}
 
+	count := 0
 	for _, member := range e.Spec.Members {
-		if member.MinSize > member.MaxSize {
-			return fmt.Errorf("ensemble must have at least one member")
+
+		// If we have a minicluster, all three sizes must be defined
+		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniCluster{}) {
+			if member.MiniCluster.Spec.MaxSize <= 0 || member.MiniCluster.Spec.Size <= 0 {
+				return fmt.Errorf("ensemble minicluster must have a size and maxsize of at least 1")
+			}
+			if member.MiniCluster.Spec.MinSize > member.MiniCluster.Spec.MaxSize {
+				return fmt.Errorf("ensemble minicluster min size must be smaller than max size")
+			}
+
+			if member.MiniCluster.Spec.Size < member.MiniCluster.Spec.MinSize || member.MiniCluster.Spec.Size > member.MiniCluster.Spec.MaxSize {
+				return fmt.Errorf("ensemble desired size must be between min and max size")
+			}
+
+			// Base container must be in valid set
+			if !strings.HasPrefix(member.SidecarBase, "ubuntu") && !strings.HasPrefix(member.SidecarBase, "rocky") {
+				return fmt.Errorf("base image must be rocky linux or ubuntu")
+			}
+			count += 1
 		}
-		if member.DesiredSize < member.MinSize || member.DesiredSize > member.MaxSize {
-			return fmt.Errorf("ensemble desired size must be between min and max size")
-		}
+	}
+	// We shouldn't get here, but being pedantic
+	if count == 0 {
+		return fmt.Errorf("no members of the ensemble are valid")
 	}
 	return nil
 }

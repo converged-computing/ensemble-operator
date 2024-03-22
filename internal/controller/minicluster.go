@@ -2,6 +2,8 @@ package controller
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
@@ -17,9 +19,11 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 	ctx context.Context,
 	name string,
 	ensemble *api.Ensemble,
-	idx int,
-	spec *minicluster.MiniCluster,
+	member *api.Member,
 ) (ctrl.Result, error) {
+
+	// This is the Minicluster that we found
+	spec := &member.MiniCluster
 
 	// Look for an existing minicluster
 	existing, err := r.getExistingMiniCluster(ctx, name, ensemble, spec)
@@ -28,7 +32,7 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 	if err != nil {
 
 		if errors.IsNotFound(err) {
-			mc := r.newMiniCluster(name, ensemble, spec, idx)
+			mc := r.newMiniCluster(name, ensemble, member, spec)
 			r.Log.Info(
 				"✨ Creating a new Ensemble MiniCluster ✨",
 				"Namespace:", mc.Namespace,
@@ -86,16 +90,32 @@ func (r *EnsembleReconciler) getExistingMiniCluster(
 func (r *EnsembleReconciler) newMiniCluster(
 	name string,
 	ensemble *api.Ensemble,
+	member *api.Member,
 	spec *minicluster.MiniCluster,
-	idx int,
 ) *minicluster.MiniCluster {
 
 	// The size should be set to the desired size
-	member := ensemble.Spec.Members[idx]
-	spec.Spec.Size = member.DesiredSize
-	spec.Spec.MaxSize = member.MaxSize
-	spec.Spec.MinSize = member.MinSize
 	spec.ObjectMeta = metav1.ObjectMeta{Name: name, Namespace: ensemble.Namespace}
+
+	// Assign the first container as the flux runners (assuming one for now)
+	spec.Spec.Containers[0].RunFlux = true
+
+	// Choose a template based on the base image
+	postTemplate := rockyLinuxPostTemplate
+	if strings.HasPrefix(member.SidecarBase, "ubuntu") {
+		postTemplate = ubuntuPostTemplate
+	}
+
+	// Create a new container for the flux metrics API to run, this will communicate with our grpc
+	sidecar := minicluster.MiniClusterContainer{
+		Name:       fmt.Sprintf("%s-api", name),
+		Image:      member.SidecarBase,
+		PullAlways: false,
+		Commands: minicluster.Commands{
+			Post: postTemplate,
+		},
+	}
+	spec.Spec.Containers = append(spec.Spec.Containers, sidecar)
 	ctrl.SetControllerReference(ensemble, spec, r.Scheme)
 	return spec
 }

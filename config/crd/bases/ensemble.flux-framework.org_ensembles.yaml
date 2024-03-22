@@ -50,18 +50,6 @@ spec:
                       default: maintain
                       description: Member specific algorithm to use
                       type: string
-                    desiredSize:
-                      default: 1
-                      format: int32
-                      type: integer
-                    maxSize:
-                      default: 1
-                      format: int32
-                      type: integer
-                    minSize:
-                      default: 1
-                      format: int32
-                      type: integer
                     minicluster:
                       description: MiniCluster is of a type MiniCluster, the base
                         unit of an ensemble. We do this because we install a flux
@@ -941,6 +929,12 @@ spec:
                           - size
                           type: object
                       type: object
+                    sidecarBase:
+                      default: rockylinux9
+                      description: Baseimage for the sidecar that will monitor the
+                        queue. Ensure that the operating systems match! This defaults
+                        to rockylinux9
+                      type: string
                   type: object
                 type: array
             required:
