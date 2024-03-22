@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- ensemble_v1alpha1_ensemble.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

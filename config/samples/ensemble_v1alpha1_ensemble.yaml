@@ -1,0 +1,12 @@
+apiVersion: ensemble.flux-framework.org/v1alpha1
+kind: Ensemble
+metadata:
+  labels:
+    app.kubernetes.io/name: ensemble
+    app.kubernetes.io/instance: ensemble-sample
+    app.kubernetes.io/part-of: ensemble-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: ensemble-operator
+  name: ensemble-sample
+spec:
+  # TODO(user): Add fields here
