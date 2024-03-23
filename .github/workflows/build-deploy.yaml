@@ -43,7 +43,7 @@ jobs:
       if: (github.event_name != 'pull_request')
       env:
         container: ${{ matrix.x[0] }}
-      run: docker push ${{ env.container }} --all-tags
+      run: docker push ${{ env.container }}
 
   # Only build arm image on merge, takes too long otherwise
   build-arm:
@@ -71,7 +71,9 @@ jobs:
        docker buildx inspect --bootstrap
 
     - name: Deploy Container
-      run: make arm-deploy
+      run: 
+        go mod tidy
+        make arm-deploy
 
   build:
     runs-on: ubuntu-latest
