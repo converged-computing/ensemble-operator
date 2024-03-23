@@ -4,7 +4,7 @@ This operator will deploy ensembles of HPC applications, first with just Flux Fr
 
 **under development**
 
-See [docs](docs) for early documentation. We currently have the GRPC service endpoint and client (in the operator) working, and a regular check for the flux queue status, and just need to implement algorithms now that make sense. A design is shown below.
+See [docs](docs) for early documentation and [algorithms](https://github.com/converged-computing/ensemble-operator/blob/main/docs/algorithms.md#algorithms) for our planned work in that space. We currently have the GRPC service endpoint and client (in the operator) working, and a regular check for the flux queue status, and just need to implement algorithms now that make sense. A design is shown below.
 
 ## Design
 
