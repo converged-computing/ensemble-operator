@@ -71,7 +71,7 @@ jobs:
        docker buildx inspect --bootstrap
 
     - name: Deploy Container
-      run: 
+      run:
         go mod tidy
         make arm-deploy
 
