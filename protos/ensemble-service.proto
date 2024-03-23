@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package convergedcomputing.org.grpc.v1;
+option go_package = "github.com/converged-computing/ensemble-operator/protos";
+
+service EnsembleOperator {
+    rpc RequestStatus(StatusRequest) returns (StatusResponse);
+}
+
+ // StatusRequest asks to see the status of the queue and jobs
+ // TODO add auth here...
+message StatusRequest {
+    string name = 1;
+    string secret = 2;
+}
+
+ message StatusResponse {
+
+    // Registration statuses
+    enum ResultType {
+      UNSPECIFIED = 0;
+      SUCCESS = 1;
+      ERROR = 2;
+      DENIED = 3;
+      EXISTS = 4;
+    }
+    string payload = 1;
+    ResultType status = 4;
+}

@@ -1,0 +1,36 @@
+name: test ensemble-operator
+
+on:
+  pull_request: []
+
+jobs:
+  formatting:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup black linter
+      run: conda create --quiet --name black pyflakes
+
+    - name: Check Spelling
+      uses: crate-ci/typos@7ad296c72fa8265059cc03d1eda562fbdfcd6df2 # v1.9.0
+      with:
+        files: ./docs/*.md ./README.md ./python/*.md
+
+    - name: Lint and format Python code
+      run: |
+        export PATH="/usr/share/miniconda/bin:$PATH"
+        source activate black
+        pip install -r .github/dev-requirements.txt
+        cd python
+        pre-commit run --all-files
+
+    # Ensure build-config is the same as the one we have
+    - name: Check Updated ensemble-operator.yaml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cp examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml
+        make build-config
+        diff examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml

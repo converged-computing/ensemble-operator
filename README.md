@@ -4,6 +4,9 @@ This operator will deploy ensembles of HPC applications, first with just Flux Fr
 
 **under development**
 
+See [docs](docs) for early documentation. We currently have the GRPC service endpoint and client (in the operator) working, and a regular
+check for the flux queue status, and just need to implement algorithms now that make sense.
+
 ## License
 
 HPCIC DevTools is distributed under the terms of the MIT license.

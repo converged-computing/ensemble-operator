@@ -67,6 +67,17 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+
+.PHONY: python
+python: python ## Generate python proto files in python
+	# pip install grpcio-tools
+	# pip freeze | grep grpcio-tools
+    # We will put rainbow plus the memory protos here
+	mkdir -p python/ensemble_operator/protos
+	cd python/ensemble_operator/protos
+	python -m grpc_tools.protoc -I./protos --python_out=./python/ensemble_operator/protos --pyi_out=./python/ensemble_operator/protos --grpc_python_out=./python/ensemble_operator/protos ./protos/ensemble-service.proto
+	sed -i 's/import ensemble_service_pb2 as ensemble__service__pb2/from . import ensemble_service_pb2 as ensemble__service__pb2/' ./python/ensemble_operator/protos/ensemble_service_pb2_grpc.py
+
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is
 # scaffolded by default. However, you might want to replace it to use other
@@ -100,13 +111,13 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Protos 
+##@ Protos
 
 .PHONY: protoc
 protoc: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 	GOBIN=$(LOCALBIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
-	
+
 # You can use make protoc to download proto
 .PHONY: proto
 proto: protoc
@@ -144,7 +155,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: test-e2e  # Run the e2e tests against a Kind k8s instance that is spun up.
 test-e2e:
 	go test ./test/e2e/ -v -ginkgo.v
-	
+
 GOLANGCI_LINT = $(shell pwd)/bin/golangci-lint
 GOLANGCI_LINT_VERSION ?= v1.54.2
 golangci-lint:
@@ -152,6 +163,16 @@ golangci-lint:
 	set -e ;\
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell dirname $(GOLANGCI_LINT)) $(GOLANGCI_LINT_VERSION) ;\
 	}
+
+
+.PHONY: helmify
+helmify: $(HELMIFY) ## Download helmify locally if necessary.
+$(HELMIFY): $(LOCALBIN)
+	test -s $(LOCALBIN)/helmify || GOBIN=$(LOCALBIN) go install github.com/arttor/helmify/cmd/helmify@latest
+    
+helm: manifests kustomize helmify
+	$(KUSTOMIZE) build config/default | $(HELMIFY)
+
 
 .PHONY: pre-push
 pre-push: generate build-config-arm build-config helm
