@@ -24,14 +24,18 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"k8s.io/client-go/rest"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	"github.com/converged-computing/ensemble-operator/internal/controller"
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -125,10 +129,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Create a RESTful client for the MiniCluster controller. We need this to actually
+	// interact with pods in the cluster!
+	gvk := schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Pod",
+	}
+
+	c, err := rest.HTTPClientFor(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "unable to create REST HTTP client", "controller", c)
+	}
+	restClient, err := apiutil.RESTClientForGVK(gvk, false, mgr.GetConfig(), serializer.NewCodecFactory(mgr.GetScheme()), c)
+	if err != nil {
+		setupLog.Error(err, "unable to create REST client", "controller", restClient)
+	}
+
 	if err = (&controller.EnsembleReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    ctrl.Log.WithName("ensemble"),
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		Log:        ctrl.Log.WithName("ensemble"),
+		RESTClient: restClient,
+		RESTConfig: mgr.GetConfig(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Ensemble")
 		os.Exit(1)

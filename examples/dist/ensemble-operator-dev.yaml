@@ -51,6 +51,13 @@ spec:
                 description: Global algorithmt to use, unless a member has a specific
                   algorithm
                 type: string
+              checkSeconds:
+                default: 10
+                description: After ensemble creation, how long should we reconcile
+                  (in other words, how many seconds between checks?) Defaults to 10
+                  seconds
+                format: int32
+                type: integer
               members:
                 description: Foo is an example field of Ensemble. Edit ensemble_types.go
                   to remove/update
@@ -62,18 +69,6 @@ spec:
                       default: maintain
                       description: Member specific algorithm to use
                       type: string
-                    desiredSize:
-                      default: 1
-                      format: int32
-                      type: integer
-                    maxSize:
-                      default: 1
-                      format: int32
-                      type: integer
-                    minSize:
-                      default: 1
-                      format: int32
-                      type: integer
                     minicluster:
                       description: MiniCluster is of a type MiniCluster, the base
                         unit of an ensemble. We do this because we install a flux
@@ -953,9 +948,28 @@ spec:
                           - size
                           type: object
                       type: object
+                    sidecarBase:
+                      default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
+                      description: Baseimage for the sidecar that will monitor the
+                        queue. Ensure that the operating systems match!
+                      type: string
+                    sidecarPort:
+                      default: "50051"
+                      type: string
+                    sidecarPullAlways:
+                      description: Always pull the sidecar container (useful for development)
+                      type: boolean
+                    sidecarWorkers:
+                      default: 10
+                      format: int32
+                      type: integer
+                  required:
+                  - sidecarPort
+                  - sidecarWorkers
                   type: object
                 type: array
             required:
+            - checkSeconds
             - members
             type: object
           status:
@@ -1030,6 +1044,42 @@ kind: ClusterRole
 metadata:
   name: ensemble-operator-manager-role
 rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 - apiGroups:
   - ensemble.flux-framework.org
   resources:
@@ -1268,6 +1318,7 @@ spec:
         command:
         - /manager
         image: ghcr.io/converged-computing/ensemble-operator:test
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz

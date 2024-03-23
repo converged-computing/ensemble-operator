@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -35,8 +37,10 @@ import (
 // EnsembleReconciler reconciles a Ensemble object
 type EnsembleReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    logr.Logger
+	Scheme     *runtime.Scheme
+	Log        logr.Logger
+	RESTClient rest.Interface
+	RESTConfig *rest.Config
 }
 
 //+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembles,verbs=get;list;watch;create;update;patch;delete
@@ -46,6 +50,10 @@ type EnsembleReconciler struct {
 //+kubebuilder:rbac:groups=flux-framework.org,resources=miniclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=flux-framework.org,resources=miniclusters/status,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=flux-framework.org,resources=miniclusters/finalizers,verbs=get;list;watch;create;update;patch;delete
+
+//+kubebuilder:rbac:groups=core,resources=pods/log,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods/exec,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile until the cluster matches the state of the desired Ensemble
 // For more details, check Reconcile and its Result here:
@@ -86,21 +94,44 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// Ensure we have the MiniCluster (get or create!)
 	// We only have MiniCluster now, but this design can be extended to others
 	for i, member := range ensemble.Spec.Members {
+
+		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 
 			// Name is the index + ensemble name
 			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			result, err := r.ensureMiniClusterEnsemble(ctx, name, &ensemble, i, &member.MiniCluster)
+			result, err := r.ensureMiniClusterEnsemble(ctx, name, &ensemble, &member)
 			if err != nil {
 				return result, err
 			}
 		}
+		// TODO do we want to reconcile earlier here, between ensemble components?
 	}
 
+	// When we have all ensembles, get updates
+	// I'm assuming here these queries might also be member-specific
+	for i, member := range ensemble.Spec.Members {
+
+		// This indicates the ensemble member is a MiniCluster
+		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
+			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
+			fmt.Printf("Checking member %s\n", name)
+			result, err := r.updateMiniClusterEnsemble(ctx, name, &ensemble, &member)
+			// An error could indicates a requeue (without the break) since something was off
+			// We likely need to tweak this a bit to account for potential updates to specific
+			// ensemble members, but this is fine for a first shot.
+			if err != nil {
+				return result, err
+			}
+
+		}
+	}
 	// By the time we get here we have a Job + pods + config maps!
 	// What else do we want to do?
 	r.Log.Info("🥞️ Ensemble is Ready!")
-	return ctrl.Result{}, err
+
+	// If we've run updates across them, should requeue per preference of ensemble check frequency
+	return ctrl.Result{RequeueAfter: time.Duration(time.Duration(ensemble.Spec.CheckSeconds) * time.Second)}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
