@@ -26,6 +26,13 @@ jobs:
         cd python
         pre-commit run --all-files
 
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ^1.20
+    - name: fmt check
+      run: make fmt
+
     # Ensure build-config is the same as the one we have
     - name: Check Updated ensemble-operator.yaml
       env:
