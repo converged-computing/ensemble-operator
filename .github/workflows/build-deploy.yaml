@@ -16,8 +16,8 @@ jobs:
       matrix:
         x: [["ghcr.io/converged-computing/ensemble-operator-api:rockylinux9", "docker/Dockerfile.rocky", "9"],
             ["ghcr.io/converged-computing/ensemble-operator-api:rockylinux8", "docker/Dockerfile.rocky", "8"],
-            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-jammy", "docker/Dockerfile.rocky", "22.04"],
-            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-focal", "docker/Dockerfile.rocky", "20.04"]]
+            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-jammy", "docker/Dockerfile.ubuntu", "22.04"],
+            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-focal", "docker/Dockerfile.ubuntu", "20.04"]]
 
     name: ${{ matrix.x[0] }}
     steps:

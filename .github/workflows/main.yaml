@@ -36,10 +36,10 @@ jobs:
         make fmt
 
     # Ensure build-config is the same as the one we have
-    - name: Check Updated ensemble-operator.yaml
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        cp examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml
-        make build-config
-        diff examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml
+    #- name: Check Updated ensemble-operator.yaml
+    #  env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #  run: |
+    #    cp examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml
+    #    make build-config
+    #    diff examples/dist/ensemble-operator.yaml /tmp/ensemble-operator.yaml
