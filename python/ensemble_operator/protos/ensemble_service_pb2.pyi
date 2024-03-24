@@ -6,29 +6,39 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class StatusRequest(_message.Message):
-    __slots__ = ("name", "secret")
-    NAME_FIELD_NUMBER: _ClassVar[int]
-    SECRET_FIELD_NUMBER: _ClassVar[int]
-    name: str
-    secret: str
-    def __init__(self, name: _Optional[str] = ..., secret: _Optional[str] = ...) -> None: ...
+    __slots__ = ("member",)
+    MEMBER_FIELD_NUMBER: _ClassVar[int]
+    member: str
+    def __init__(self, member: _Optional[str] = ...) -> None: ...
 
-class StatusResponse(_message.Message):
+class ActionRequest(_message.Message):
+    __slots__ = ("member", "algorithm", "action", "payload")
+    MEMBER_FIELD_NUMBER: _ClassVar[int]
+    ALGORITHM_FIELD_NUMBER: _ClassVar[int]
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    PAYLOAD_FIELD_NUMBER: _ClassVar[int]
+    member: str
+    algorithm: str
+    action: str
+    payload: str
+    def __init__(self, member: _Optional[str] = ..., algorithm: _Optional[str] = ..., action: _Optional[str] = ..., payload: _Optional[str] = ...) -> None: ...
+
+class Response(_message.Message):
     __slots__ = ("payload", "status")
     class ResultType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
         __slots__ = ()
-        UNSPECIFIED: _ClassVar[StatusResponse.ResultType]
-        SUCCESS: _ClassVar[StatusResponse.ResultType]
-        ERROR: _ClassVar[StatusResponse.ResultType]
-        DENIED: _ClassVar[StatusResponse.ResultType]
-        EXISTS: _ClassVar[StatusResponse.ResultType]
-    UNSPECIFIED: StatusResponse.ResultType
-    SUCCESS: StatusResponse.ResultType
-    ERROR: StatusResponse.ResultType
-    DENIED: StatusResponse.ResultType
-    EXISTS: StatusResponse.ResultType
+        UNSPECIFIED: _ClassVar[Response.ResultType]
+        SUCCESS: _ClassVar[Response.ResultType]
+        ERROR: _ClassVar[Response.ResultType]
+        DENIED: _ClassVar[Response.ResultType]
+        EXISTS: _ClassVar[Response.ResultType]
+    UNSPECIFIED: Response.ResultType
+    SUCCESS: Response.ResultType
+    ERROR: Response.ResultType
+    DENIED: Response.ResultType
+    EXISTS: Response.ResultType
     PAYLOAD_FIELD_NUMBER: _ClassVar[int]
     STATUS_FIELD_NUMBER: _ClassVar[int]
     payload: str
-    status: StatusResponse.ResultType
-    def __init__(self, payload: _Optional[str] = ..., status: _Optional[_Union[StatusResponse.ResultType, str]] = ...) -> None: ...
+    status: Response.ResultType
+    def __init__(self, payload: _Optional[str] = ..., status: _Optional[_Union[Response.ResultType, str]] = ...) -> None: ...

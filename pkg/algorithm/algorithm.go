@@ -10,7 +10,8 @@ import (
 
 // A lookup of registered algorithms by name
 var (
-	Algorithms = map[string]AlgorithmInterface{}
+	Algorithms   = map[string]AlgorithmInterface{}
+	SubmitAction = "submit"
 )
 
 // An algorithm interface determines behavior for scaling and termination.
@@ -23,7 +24,7 @@ type AlgorithmInterface interface {
 	Description() string
 
 	// Let's assume an algorithm can make a decision based on the gRPC payload
-	MakeDecision(interface{}, *api.Member) (AlgorithmDecision, error)
+	MakeDecision(interface{}, []api.Job) (AlgorithmDecision, error)
 	Validate(AlgorithmOptions) bool
 
 	// Check that an algorithm is supported for a member type, and the member is valid
@@ -37,10 +38,17 @@ type AlgorithmDecision struct {
 	Scale int32 `json:"scale"`
 
 	// Terminate the member
-	Terminate bool `terminate:"scale"`
+	Terminate bool `json:"terminate"`
 
 	// Send payload back to gRPC sidecar service
 	Payload string `json:"payload"`
+
+	// Action to ask the queue to take
+	Action string `json:"action"`
+
+	// Update determines if the spec was updated (warranting a patch)
+	Updated bool `json:"updated"`
+	Jobs    []api.Job
 }
 
 // AlgorithmOptions allow packaging named values of different types

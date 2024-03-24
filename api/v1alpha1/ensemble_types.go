@@ -26,7 +26,8 @@ import (
 )
 
 var (
-	defaultSidecarbase = "ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
+	defaultSidecarbase   = "ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
+	defaultAlgorithmName = "workload-demand"
 )
 
 // EnsembleSpec defines the desired state of Ensemble
@@ -57,26 +58,12 @@ type Member struct {
 	// +optional
 	MiniCluster minicluster.MiniCluster `json:"minicluster,omitempty"`
 
-	// Baseimage for the sidecar that will monitor the queue.
-	// Ensure that the operating systems match!
-	// +kubebuilder:default="ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
-	// +default="ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
-	// +optional
-	SidecarBase string `json:"sidecarBase"`
-
-	// Always pull the sidecar container (useful for development)
-	// +optional
-	SidecarPullAlways bool `json:"sidecarPullAlways"`
-
-	// +kubebuilder:default="50051"
-	// +default="50051"
-	SidecarPort string `json:"sidecarPort"`
-
-	// +kubebuilder:default=10
-	// +default=10
-	SidecarWorkers int32 `json:"sidecarWorkers"`
+	// Definition and customization of the sidecar
+	//+optional
+	Sidecar Sidecar `json:"sidecar,omitempty"`
 
 	// A member is required to define one or more jobs
+	// These are passed into status for further updating
 	// Jobs
 	Jobs []Job `json:"jobs"`
 
@@ -84,6 +71,28 @@ type Member struct {
 	// If not defined, defaults to workload-demand
 	//+optional
 	Algorithm Algorithm `json:"algorithm"`
+}
+
+type Sidecar struct {
+
+	// Baseimage for the sidecar that will monitor the queue.
+	// Ensure that the operating systems match!
+	// +kubebuilder:default="ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
+	// +default="ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
+	// +optional
+	Image string `json:"image"`
+
+	// Always pull the sidecar container (useful for development)
+	// +optional
+	PullAlways bool `json:"pullAlways"`
+
+	// +kubebuilder:default="50051"
+	// +default="50051"
+	Port string `json:"port"`
+
+	// +kubebuilder:default=10
+	// +default=10
+	Workers int32 `json:"workers"`
 }
 
 type Algorithm struct {
@@ -106,8 +115,15 @@ type Job struct {
 	// Number of jobs to run
 	// This can be set to 0 depending on the algorithm
 	// E.g., some algorithms decide on the number to submit
+	// +kubebuilder:default=1
+	// +default=1
 	//+optional
 	Count int32 `json:"count"`
+
+	// +kubebuilder:default=1
+	// +default=1
+	//+optional
+	Nodes int32 `json:"nodes"`
 
 	// TODO add label here for ML model category
 
@@ -115,8 +131,9 @@ type Job struct {
 
 // EnsembleStatus defines the observed state of Ensemble
 type EnsembleStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+
+	// Jobs
+	Jobs map[string][]Job `json:"jobs"`
 }
 
 // Helper function get member type
@@ -127,12 +144,23 @@ func (m *Member) Type() string {
 	return "unknown"
 }
 
+func (e *Ensemble) getDefaultAlgorithm() Algorithm {
+	defaultAlgorithm := e.Spec.Algorithm
+
+	// No we don't, it's empty
+	if reflect.DeepEqual(defaultAlgorithm, Algorithm{}) {
+		defaultAlgorithm = Algorithm{Name: defaultAlgorithmName}
+	}
+	return defaultAlgorithm
+}
+
 // Validate ensures we have data that is needed, and sets defaults if needed
 func (e *Ensemble) Validate() error {
 	fmt.Println()
 
 	// These are the allowed sidecars
 	bases := set.New(
+		"ghcr.io/converged-computing/ensemble-operator-api:rockylinux9-test",
 		"ghcr.io/converged-computing/ensemble-operator-api:rockylinux9",
 		"ghcr.io/converged-computing/ensemble-operator-api:rockylinux8",
 		"ghcr.io/converged-computing/ensemble-operator-api:ubuntu-focal",
@@ -143,12 +171,7 @@ func (e *Ensemble) Validate() error {
 	fmt.Printf("🤓 Ensemble.members %d\n", len(e.Spec.Members))
 
 	// Do we have a default algorithm set?
-	defaultAlgorithm := e.Spec.Algorithm
-
-	// No we don't, it's empty
-	if reflect.DeepEqual(defaultAlgorithm, Algorithm{}) {
-		defaultAlgorithm = Algorithm{Name: "workload-demand"}
-	}
+	defaultAlgorithm := e.getDefaultAlgorithm()
 
 	// If MaxSize is set, it must be greater than size
 	if len(e.Spec.Members) < 1 {
@@ -170,14 +193,24 @@ func (e *Ensemble) Validate() error {
 		if len(member.Jobs) == 0 {
 			return fmt.Errorf("ensemble member in index %d must have at least one job definition", i)
 		}
+
+		// Validate jobs matrix
+		for _, job := range member.Jobs {
+			if job.Count <= 0 {
+				job.Count = 1
+			}
+		}
+
 		// If we have a minicluster, all three sizes must be defined
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniCluster{}) {
-			fmt.Println("      Ensemble.member Type: minicluster")
 
-			if member.SidecarBase == "" {
-				member.SidecarBase = defaultSidecarbase
+			fmt.Println("      Ensemble.member Type: minicluster")
+			if member.Sidecar.Image == "" {
+				member.Sidecar.Image = defaultSidecarbase
 			}
-			fmt.Printf("      Ensemble.member.SidecarBase: %s\n", member.SidecarBase)
+			fmt.Printf("      Ensemble.member.Sidecar.Image: %s\n", member.Sidecar.Image)
+			fmt.Printf("      Ensemble.member.Sidecar.Port: %s\n", member.Sidecar.Port)
+			fmt.Printf("      Ensemble.member.Sidecar.PullAlways: %v\n", member.Sidecar.PullAlways)
 
 			if member.MiniCluster.Spec.MaxSize <= 0 || member.MiniCluster.Spec.Size <= 0 {
 				return fmt.Errorf("ensemble minicluster must have a size and maxsize of at least 1")
@@ -191,7 +224,7 @@ func (e *Ensemble) Validate() error {
 			}
 
 			// Base container must be in valid set
-			if !bases.Has(member.SidecarBase) {
+			if !bases.Has(member.Sidecar.Image) {
 				return fmt.Errorf("base image must be rocky linux or ubuntu: %s", bases)
 			}
 			count += 1

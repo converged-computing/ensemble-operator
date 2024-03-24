@@ -6,9 +6,16 @@ from concurrent import futures
 
 import grpc
 
+import ensemble_operator.algorithm as algorithms
 import ensemble_operator.defaults as defaults
+import ensemble_operator.members as members
 from ensemble_operator.protos import ensemble_service_pb2
 from ensemble_operator.protos import ensemble_service_pb2_grpc as api
+
+# IMPORTANT: this only works with global variables if we have one ensemble gRPC per pod.
+# We are anticipating storing some state here with the ensemble mamber since the
+# operator should not be doing that.
+cache = {}
 
 
 def get_parser():
@@ -50,31 +57,47 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
     """
 
     def RequestStatus(self, request, context):
-        """Request information about queues and jobs."""
-        print(request)
+        """
+        Request information about queues and jobs.
+        """
         print(context)
+        print(f"Member type: {request.member}")
+
+        # This will raise an error if the member type (e.g., minicluster) is not known
+        member = members.get_member(request.member)
 
         # If the flux handle didn't work, this might error
         try:
-            import ensemble_operator.metrics as metrics
-        except:
-            return ensemble_service_pb2.StatusResponse(
-                status=ensemble_service_pb2.StatusResponse.ResultType.ERROR
+            payload = member.status()
+        except Exception as e:
+            print(e)
+            return ensemble_service_pb2.Response(
+                status=ensemble_service_pb2.Response.ResultType.ERROR
             )
 
-        # Prepare a payload to send back
-        payload = {}
-
-        # The payload is the metrics listing
-        for name, func in metrics.metrics.items():
-            payload[name] = func()
-
-        print(json.dumps(payload, indent=4))
-        # context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        # context.set_details('Method not implemented!')
-        return ensemble_service_pb2.StatusResponse(
+        print(json.dumps(payload))
+        return ensemble_service_pb2.Response(
             payload=json.dumps(payload),
-            status=ensemble_service_pb2.StatusResponse.ResultType.SUCCESS,
+            status=ensemble_service_pb2.Response.ResultType.SUCCESS,
+        )
+
+    def RequestAction(self, request, context):
+        """
+        Request an action is performed according to an algorithm.
+        """
+        print(f"Algorithm {request.algorithm}")
+        print(f"Action {request.action}")
+        print(f"Payload {request.payload}")
+
+        # TODO retrieve the algorithm to process the request
+        # We aren't using this or doing that yet, we are just submitting jobs
+        # alg = algorithms.get_algorithm(request.algorithm)
+        member = members.get_member(request.member)
+        if request.action == "submit":
+            member.submit(request.payload)
+
+        return ensemble_service_pb2.Response(
+            status=ensemble_service_pb2.Response.ResultType.SUCCESS
         )
 
 

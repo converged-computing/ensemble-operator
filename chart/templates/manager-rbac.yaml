@@ -56,7 +56,7 @@ rules:
 - apiGroups:
   - ensemble.flux-framework.org
   resources:
-  - ensembless
+  - ensembles/status
   verbs:
   - get
   - patch

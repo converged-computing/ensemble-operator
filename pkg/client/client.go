@@ -26,7 +26,8 @@ var _ Client = (*EnsembleClient)(nil)
 type Client interface {
 
 	// Ensemble interactions
-	RequestStatus(ctx context.Context, in *pb.StatusRequest, opts ...grpc.CallOption) (*pb.StatusResponse, error)
+	RequestStatus(ctx context.Context, in *pb.StatusRequest, opts ...grpc.CallOption) (*pb.Response, error)
+	RequestAction(ctx context.Context, in *pb.ActionRequest, opts ...grpc.CallOption) (*pb.Response, error)
 }
 
 // NewClient creates a new EnsembleClient
@@ -69,23 +70,40 @@ func (c *EnsembleClient) GetHost() string {
 	return c.host
 }
 
-// SubmitJob submits a job to a named cluster.
-// The token specific to the cluster is required
-func (c *EnsembleClient) RequestStatus(ctx context.Context, in *pb.StatusRequest, opts ...grpc.CallOption) (*pb.StatusResponse, error) {
+// RequestStatus gets the queue and jobs status.
+// This is primarily for scaling/termination
+func (c *EnsembleClient) RequestStatus(
+	ctx context.Context,
+	in *pb.StatusRequest,
+	opts ...grpc.CallOption,
+) (*pb.Response, error) {
 
-	response := &pb.StatusResponse{}
+	response := &pb.Response{}
 	if !c.Connected() {
 		return response, errors.New("client is not connected")
 	}
-
-	// Now contact the rainbow server with clusters...
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	// Validate that the cluster exists, and we have the right token.
-	// The response is the same either way - not found does not reveal
-	// additional information to the client trying to find it
-	response, err := c.service.RequestStatus(ctx, &pb.StatusRequest{})
+	response, err := c.service.RequestStatus(ctx, in)
+	fmt.Println(response)
+	return response, err
+}
+
+func (c *EnsembleClient) RequestAction(
+	ctx context.Context,
+	in *pb.ActionRequest,
+	opts ...grpc.CallOption,
+) (*pb.Response, error) {
+
+	response := &pb.Response{}
+	if !c.Connected() {
+		return response, errors.New("client is not connected")
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	response, err := c.service.RequestAction(ctx, in)
 	fmt.Println(response)
 	return response, err
 }

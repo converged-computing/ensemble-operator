@@ -23,42 +23,28 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 
 	// This is the Minicluster that we found
 	spec := &member.MiniCluster
+	fmt.Println("✨ Ensuring Ensemble MiniCluster")
 
 	// Look for an existing minicluster
-	existing, err := r.getExistingMiniCluster(ctx, name, ensemble)
+	_, err := r.getExistingMiniCluster(ctx, name, ensemble)
 
 	// Create a new job if it does not exist
 	if err != nil {
 
 		if errors.IsNotFound(err) {
 			mc := r.newMiniCluster(name, ensemble, member, spec)
-			r.Log.Info(
-				"✨ Creating a new Ensemble MiniCluster ✨",
-				"Namespace:", mc.Namespace,
-				"Name:", mc.Name,
-			)
+			fmt.Println("      Creating a new Ensemble MiniCluster")
 			err = r.Create(ctx, mc)
 			if err != nil {
-				r.Log.Error(
-					err,
-					"Failed to create new Ensemble MiniCluster",
-					"Namespace:", mc.Namespace,
-					"Name:", mc.Name,
-				)
-				// This is a stopping condition
+				fmt.Println("      Failed to create Ensemble MiniCluster")
 				return ctrl.Result{}, err
 			}
-			// Successful - return and requeue
 			return ctrl.Result{Requeue: true}, nil
 		}
 		// This means an error that isn't covered
 		return ctrl.Result{}, err
 	} else {
-		r.Log.Info(
-			"🎉 Found existing Ensemble MiniCluster 🎉",
-			"Namespace:", existing.Namespace,
-			"Name:", existing.Name,
-		)
+		fmt.Println("      Found existing Ensemble MiniCluster")
 	}
 	// We need to requeue since we check the status with reconcile
 	return ctrl.Result{Requeue: true}, err
@@ -101,13 +87,13 @@ func (r *EnsembleReconciler) newMiniCluster(
 	spec.Spec.Interactive = true
 
 	// Start command for ensemble grpc service
-	command := fmt.Sprintf(postCommand, member.SidecarPort, member.SidecarWorkers)
+	command := fmt.Sprintf(postCommand, member.Sidecar.Port, member.Sidecar.Workers)
 
 	// Create a new container for the flux metrics API to run, this will communicate with our grpc
 	sidecar := minicluster.MiniClusterContainer{
 		Name:       "api",
-		Image:      member.SidecarBase,
-		PullAlways: member.SidecarPullAlways,
+		Image:      member.Sidecar.Image,
+		PullAlways: member.Sidecar.PullAlways,
 		Commands: minicluster.Commands{
 			Post: command,
 		},

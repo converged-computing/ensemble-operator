@@ -4,7 +4,9 @@ metadata:
   name: workload-demand
 spec:
   members:
-  - sidecarPullAlways: true
+  - sidecar:
+      pullAlways: true
+      image: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9-test
     algorithm:
       name: workload-demand
     jobs:

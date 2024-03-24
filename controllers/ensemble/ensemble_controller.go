@@ -44,8 +44,8 @@ type EnsembleReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembles,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembless,verbs=status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembles,verbs=finalizers,verbs=update
+//+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembles/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=ensemble.flux-framework.org,resources=ensembles,verbs=finalizers,verbs=get;update;patch
 
 //+kubebuilder:rbac:groups=flux-framework.org,resources=miniclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=flux-framework.org,resources=miniclusters/status,verbs=get;list;watch;create;update;patch;delete
@@ -67,8 +67,8 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	var ensemble api.Ensemble
 
 	// Keep developer informed what is going on.
-	r.Log.Info("🥞️ Ensemble! Like pancakes")
-	r.Log.Info("Request: ", "req", req)
+	fmt.Println("🥞️ Ensemble! Like pancakes")
+	fmt.Printf("   => Request: %s\n", req)
 
 	// Does the Ensemble exist yet (based on name and namespace)
 	err := r.Get(ctx, req.NamespacedName, &ensemble)
@@ -76,20 +76,25 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		// Create it, doesn't exist yet
 		if errors.IsNotFound(err) {
-			r.Log.Info("🥞️ Ensemble not found. Ignoring since object must be deleted.")
+			fmt.Println("      Ensemble not found. Ignoring since object must be deleted.")
 			return ctrl.Result{}, nil
 		}
-		r.Log.Info("🥞️ Failed to get Ensemble. Re-running reconcile.")
+		fmt.Println("      Failed to get Ensemble. Re-running reconcile.")
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Show parameters provided and validate one flux runner
 	err = ensemble.Validate()
 	if err != nil {
-		r.Log.Error(err, "🥞️ Your ensemble did not validate")
-		return ctrl.Result{}, nil
+		r.Log.Error(err, "      Your ensemble did not validate")
+		return ctrl.Result{}, err
 	}
-	r.Log.Info("🥞️ Reconciling Ensemble", "Members: ", len(ensemble.Spec.Members))
+	fmt.Printf("      Members %d\n", len(ensemble.Spec.Members))
+
+	// Do we need to init the jobs matrix?
+	if len(ensemble.Status.Jobs) == 0 {
+		return r.initJobsMatrix(ctx, &ensemble)
+	}
 
 	// Ensure we have the MiniCluster (get or create!)
 	// We only have MiniCluster now, but this design can be extended to others
@@ -115,8 +120,8 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			fmt.Printf("Checking member %s\n", name)
-			result, err := r.updateMiniClusterEnsemble(ctx, name, &ensemble, &member)
+			fmt.Printf("      Checking member %s\n", name)
+			result, err := r.updateMiniClusterEnsemble(ctx, name, &ensemble, &member, i)
 			// An error could indicates a requeue (without the break) since something was off
 			// We likely need to tweak this a bit to account for potential updates to specific
 			// ensemble members, but this is fine for a first shot.
@@ -128,10 +133,34 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	// By the time we get here we have a Job + pods + config maps!
 	// What else do we want to do?
-	r.Log.Info("🥞️ Ensemble is Ready!")
+	r.Log.Info("      Ensemble is Ready!")
 
 	// If we've run updates across them, should requeue per preference of ensemble check frequency
 	return ctrl.Result{RequeueAfter: time.Duration(time.Duration(ensemble.Spec.CheckSeconds) * time.Second)}, nil
+}
+
+// initJobsMatrix sets up the jobs matrix in status (for updating) to work from
+func (r *EnsembleReconciler) initJobsMatrix(
+	ctx context.Context,
+	ensemble *api.Ensemble,
+) (ctrl.Result, error) {
+
+	fmt.Println("      Initializing Jobs Matrix")
+	patch := client.MergeFrom(ensemble.DeepCopy())
+	ensemble.Status.Jobs = map[string][]api.Job{}
+	for i, member := range ensemble.Spec.Members {
+		idx := fmt.Sprintf("%d", i)
+		ensemble.Status.Jobs[idx] = member.Jobs
+	}
+	err := r.Status().Update(ctx, ensemble)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.Patch(ctx, ensemble, patch)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	return ctrl.Result{Requeue: true}, err
 }
 
 // SetupWithManager sets up the controller with the Manager.

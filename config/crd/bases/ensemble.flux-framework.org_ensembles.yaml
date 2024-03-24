@@ -66,7 +66,7 @@ spec:
                       type: object
                     jobs:
                       description: A member is required to define one or more jobs
-                        Jobs
+                        These are passed into status for further updating Jobs
                       items:
                         description: Job defines a unit of work for the ensemble to
                           munch on. Munch munch munch.
@@ -75,6 +75,7 @@ spec:
                             description: Command given to flux
                             type: string
                           count:
+                            default: 1
                             description: Number of jobs to run This can be set to
                               0 depending on the algorithm E.g., some algorithms decide
                               on the number to submit
@@ -83,6 +84,10 @@ spec:
                           name:
                             description: Name to identify the job group
                             type: string
+                          nodes:
+                            default: 1
+                            format: int32
+                            type: integer
                         required:
                         - command
                         - name
@@ -967,25 +972,31 @@ spec:
                           - size
                           type: object
                       type: object
-                    sidecarBase:
-                      default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
-                      description: Baseimage for the sidecar that will monitor the
-                        queue. Ensure that the operating systems match!
-                      type: string
-                    sidecarPort:
-                      default: "50051"
-                      type: string
-                    sidecarPullAlways:
-                      description: Always pull the sidecar container (useful for development)
-                      type: boolean
-                    sidecarWorkers:
-                      default: 10
-                      format: int32
-                      type: integer
+                    sidecar:
+                      description: Definition and customization of the sidecar
+                      properties:
+                        image:
+                          default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
+                          description: Baseimage for the sidecar that will monitor
+                            the queue. Ensure that the operating systems match!
+                          type: string
+                        port:
+                          default: "50051"
+                          type: string
+                        pullAlways:
+                          description: Always pull the sidecar container (useful for
+                            development)
+                          type: boolean
+                        workers:
+                          default: 10
+                          format: int32
+                          type: integer
+                      required:
+                      - port
+                      - workers
+                      type: object
                   required:
                   - jobs
-                  - sidecarPort
-                  - sidecarWorkers
                   type: object
                 type: array
             required:
@@ -994,6 +1005,39 @@ spec:
             type: object
           status:
             description: EnsembleStatus defines the observed state of Ensemble
+            properties:
+              jobs:
+                additionalProperties:
+                  items:
+                    description: Job defines a unit of work for the ensemble to munch
+                      on. Munch munch munch.
+                    properties:
+                      command:
+                        description: Command given to flux
+                        type: string
+                      count:
+                        default: 1
+                        description: Number of jobs to run This can be set to 0 depending
+                          on the algorithm E.g., some algorithms decide on the number
+                          to submit
+                        format: int32
+                        type: integer
+                      name:
+                        description: Name to identify the job group
+                        type: string
+                      nodes:
+                        default: 1
+                        format: int32
+                        type: integer
+                    required:
+                    - command
+                    - name
+                    type: object
+                  type: array
+                description: Jobs
+                type: object
+            required:
+            - jobs
             type: object
         type: object
     served: true

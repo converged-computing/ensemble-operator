@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
-	"github.com/converged-computing/ensemble-operator/internal/controller"
+	controller "github.com/converged-computing/ensemble-operator/controllers/ensemble"
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

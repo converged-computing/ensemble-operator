@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x16\x65nsemble-service.proto\x12\x1e\x63onvergedcomputing.org.grpc.v1"-\n\rStatusRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06secret\x18\x02 \x01(\t"\xbb\x01\n\x0eStatusResponse\x12\x0f\n\x07payload\x18\x01 \x01(\t\x12I\n\x06status\x18\x04 \x01(\x0e\x32\x39.convergedcomputing.org.grpc.v1.StatusResponse.ResultType"M\n\nResultType\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x0b\n\x07SUCCESS\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\n\n\x06\x44\x45NIED\x10\x03\x12\n\n\x06\x45XISTS\x10\x04\x32\x82\x01\n\x10\x45nsembleOperator\x12n\n\rRequestStatus\x12-.convergedcomputing.org.grpc.v1.StatusRequest\x1a..convergedcomputing.org.grpc.v1.StatusResponseB9Z7github.com/converged-computing/ensemble-operator/protosb\x06proto3'
+    b'\n\x16\x65nsemble-service.proto\x12\x1e\x63onvergedcomputing.org.grpc.v1"\x1f\n\rStatusRequest\x12\x0e\n\x06member\x18\x01 \x01(\t"S\n\rActionRequest\x12\x0e\n\x06member\x18\x01 \x01(\t\x12\x11\n\talgorithm\x18\x02 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x03 \x01(\t\x12\x0f\n\x07payload\x18\x04 \x01(\t"\xaf\x01\n\x08Response\x12\x0f\n\x07payload\x18\x01 \x01(\t\x12\x43\n\x06status\x18\x04 \x01(\x0e\x32\x33.convergedcomputing.org.grpc.v1.Response.ResultType"M\n\nResultType\x12\x0f\n\x0bUNSPECIFIED\x10\x00\x12\x0b\n\x07SUCCESS\x10\x01\x12\t\n\x05\x45RROR\x10\x02\x12\n\n\x06\x44\x45NIED\x10\x03\x12\n\n\x06\x45XISTS\x10\x04\x32\xe6\x01\n\x10\x45nsembleOperator\x12h\n\rRequestStatus\x12-.convergedcomputing.org.grpc.v1.StatusRequest\x1a(.convergedcomputing.org.grpc.v1.Response\x12h\n\rRequestAction\x12-.convergedcomputing.org.grpc.v1.ActionRequest\x1a(.convergedcomputing.org.grpc.v1.ResponseB9Z7github.com/converged-computing/ensemble-operator/protosb\x06proto3'
 )
 
 _globals = globals()
@@ -26,11 +26,13 @@ if _descriptor._USE_C_DESCRIPTORS == False:
         "DESCRIPTOR"
     ]._serialized_options = b"Z7github.com/converged-computing/ensemble-operator/protos"
     _globals["_STATUSREQUEST"]._serialized_start = 58
-    _globals["_STATUSREQUEST"]._serialized_end = 103
-    _globals["_STATUSRESPONSE"]._serialized_start = 106
-    _globals["_STATUSRESPONSE"]._serialized_end = 293
-    _globals["_STATUSRESPONSE_RESULTTYPE"]._serialized_start = 216
-    _globals["_STATUSRESPONSE_RESULTTYPE"]._serialized_end = 293
-    _globals["_ENSEMBLEOPERATOR"]._serialized_start = 296
-    _globals["_ENSEMBLEOPERATOR"]._serialized_end = 426
+    _globals["_STATUSREQUEST"]._serialized_end = 89
+    _globals["_ACTIONREQUEST"]._serialized_start = 91
+    _globals["_ACTIONREQUEST"]._serialized_end = 174
+    _globals["_RESPONSE"]._serialized_start = 177
+    _globals["_RESPONSE"]._serialized_end = 352
+    _globals["_RESPONSE_RESULTTYPE"]._serialized_start = 275
+    _globals["_RESPONSE_RESULTTYPE"]._serialized_end = 352
+    _globals["_ENSEMBLEOPERATOR"]._serialized_start = 355
+    _globals["_ENSEMBLEOPERATOR"]._serialized_end = 585
 # @@protoc_insertion_point(module_scope)
