@@ -31,6 +31,7 @@ We have immense freedom in terms of what we can optimize, which is why designing
 ## Algorithms
 
 Note that these are off the top of my head, and can be extended (or shrunk). Each can (and likely will be) extended with options, but I need to implement the core structure first.
+Note that each algorithm will also define the member types (e.g., minicluster) that are supported.
 
 ### Structure
 

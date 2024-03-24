@@ -47,10 +47,13 @@ spec:
             description: EnsembleSpec defines the desired state of Ensemble
             properties:
               algorithm:
-                default: maintain
                 description: Global algorithmt to use, unless a member has a specific
                   algorithm
-                type: string
+                properties:
+                  name:
+                    default: workload-demand
+                    type: string
+                type: object
               checkSeconds:
                 default: 10
                 description: After ensemble creation, how long should we reconcile
@@ -66,9 +69,37 @@ spec:
                     of times, optionally with a maximum or minumum
                   properties:
                     algorithm:
-                      default: maintain
-                      description: Member specific algorithm to use
-                      type: string
+                      description: Member specific algorithm to use If not defined,
+                        defaults to workload-demand
+                      properties:
+                        name:
+                          default: workload-demand
+                          type: string
+                      type: object
+                    jobs:
+                      description: A member is required to define one or more jobs
+                        Jobs
+                      items:
+                        description: Job defines a unit of work for the ensemble to
+                          munch on. Munch munch munch.
+                        properties:
+                          command:
+                            description: Command given to flux
+                            type: string
+                          count:
+                            description: Number of jobs to run This can be set to
+                              0 depending on the algorithm E.g., some algorithms decide
+                              on the number to submit
+                            format: int32
+                            type: integer
+                          name:
+                            description: Name to identify the job group
+                            type: string
+                        required:
+                        - command
+                        - name
+                        type: object
+                      type: array
                     minicluster:
                       description: MiniCluster is of a type MiniCluster, the base
                         unit of an ensemble. We do this because we install a flux
@@ -964,6 +995,7 @@ spec:
                       format: int32
                       type: integer
                   required:
+                  - jobs
                   - sidecarPort
                   - sidecarWorkers
                   type: object

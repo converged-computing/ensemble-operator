@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
+	"github.com/converged-computing/ensemble-operator/internal/algorithm"
 	"github.com/converged-computing/ensemble-operator/internal/client"
 	pb "github.com/converged-computing/ensemble-operator/protos"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +72,6 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
-	fmt.Println(c)
 
 	// Get the queue status!
 	in := pb.StatusRequest{}
@@ -80,8 +80,31 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 		r.Log.Info("🦀 MiniCluster Ensemble GRPC Client", "Error with status request", err)
 		return ctrl.Result{Requeue: true}, err
 	}
+	// Get the algorithm - if this fails we stop
+	a, err := algorithm.Get(member.Algorithm.Name)
+	if err != nil {
+		r.Log.Info("🦀 MiniCluster Ensemble GRPC Client", "Failed to retrieve algorithm", err)
+		return ctrl.Result{Requeue: true}, err
+	}
+	// check that the algorithm is valid for the member type
+	// TODO add actual options here
+	err = a.Check(algorithm.AlgorithmOptions{}, member)
+	if err != nil {
+		r.Log.Info("🦀 MiniCluster Ensemble GRPC Client", "Algorithm %s does not support %s", a.Name(), member.Type())
+		return ctrl.Result{}, err
+	}
+
 	fmt.Println(response.Status)
 	fmt.Println(response.Payload)
+
+	// Make a decision
+	decision, err := a.MakeDecision(response.Payload, member)
+	if err != nil {
+		r.Log.Info("🦀 MiniCluster Ensemble GRPC Client", "Decision Error", err)
+		return ctrl.Result{}, err
+	}
+
+	fmt.Println(decision)
 
 	// This is the last return, this says to check every N seconds
 	return ctrl.Result{Requeue: true}, nil

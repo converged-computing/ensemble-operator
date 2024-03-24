@@ -97,6 +97,9 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// Assign the first container as the flux runners (assuming one for now)
 	spec.Spec.Containers[0].RunFlux = true
 
+	// All clusters are interactive because we expect to be submitting jobs
+	spec.Spec.Interactive = true
+
 	// Start command for ensemble grpc service
 	command := fmt.Sprintf(postCommand, member.SidecarPort, member.SidecarWorkers)
 

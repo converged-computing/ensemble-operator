@@ -43,10 +43,8 @@ type EnsembleSpec struct {
 	CheckSeconds int32 `json:"checkSeconds"`
 
 	// Global algorithmt to use, unless a member has a specific algorithm
-	// +kubebuilder:default="maintain"
-	// +default="maintain"
 	//+optional
-	Algorithm string `json:"algorithm"`
+	Algorithm Algorithm `json:"algorithm"`
 }
 
 // A member of the ensemble that will run for some number of times,
@@ -78,19 +76,41 @@ type Member struct {
 	// +default=10
 	SidecarWorkers int32 `json:"sidecarWorkers"`
 
-	// JobSet as the Member
-	// +optional
-	//JobSet jobset.JobSet `json:"jobset,omitempty"`
-
-	// Job
-	// +optional
-	//Job batchv1.Job `json:"job,omitempty"`
+	// A member is required to define one or more jobs
+	// Jobs
+	Jobs []Job `json:"jobs"`
 
 	// Member specific algorithm to use
-	// +kubebuilder:default="maintain"
-	// +default="maintain"
+	// If not defined, defaults to workload-demand
 	//+optional
-	Algorithm string `json:"algorithm"`
+	Algorithm Algorithm `json:"algorithm"`
+}
+
+type Algorithm struct {
+
+	// +kubebuilder:default="workload-demand"
+	// +default="workload-demand"
+	//+optional
+	Name string `json:"name"`
+}
+
+// Job defines a unit of work for the ensemble to munch on. Munch munch munch.
+type Job struct {
+
+	// Name to identify the job group
+	Name string `json:"name"`
+
+	// Command given to flux
+	Command string `json:"command"`
+
+	// Number of jobs to run
+	// This can be set to 0 depending on the algorithm
+	// E.g., some algorithms decide on the number to submit
+	//+optional
+	Count int32 `json:"count"`
+
+	// TODO add label here for ML model category
+
 }
 
 // EnsembleStatus defines the observed state of Ensemble
@@ -99,15 +119,36 @@ type EnsembleStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
+// Helper function get member type
+func (m *Member) Type() string {
+	if !reflect.DeepEqual(m.MiniCluster, minicluster.MiniCluster{}) {
+		return "minicluster"
+	}
+	return "unknown"
+}
+
 // Validate ensures we have data that is needed, and sets defaults if needed
 func (e *Ensemble) Validate() error {
 	fmt.Println()
 
 	// These are the allowed sidecars
-	bases := set.New("ghcr.io/converged-computing/ensemble-operator-api:rockylinux9")
+	bases := set.New(
+		"ghcr.io/converged-computing/ensemble-operator-api:rockylinux9",
+		"ghcr.io/converged-computing/ensemble-operator-api:rockylinux8",
+		"ghcr.io/converged-computing/ensemble-operator-api:ubuntu-focal",
+		"ghcr.io/converged-computing/ensemble-operator-api:ubuntu-jammy",
+	)
 
 	// Global (entire cluster) settings
 	fmt.Printf("🤓 Ensemble.members %d\n", len(e.Spec.Members))
+
+	// Do we have a default algorithm set?
+	defaultAlgorithm := e.Spec.Algorithm
+
+	// No we don't, it's empty
+	if reflect.DeepEqual(defaultAlgorithm, Algorithm{}) {
+		defaultAlgorithm = Algorithm{Name: "workload-demand"}
+	}
 
 	// If MaxSize is set, it must be greater than size
 	if len(e.Spec.Members) < 1 {
@@ -119,6 +160,16 @@ func (e *Ensemble) Validate() error {
 
 		fmt.Printf("   => Ensemble.member %d\n", i)
 
+		// If we don't have an algorithm set, use the default
+		if reflect.DeepEqual(defaultAlgorithm, Algorithm{}) {
+			member.Algorithm = defaultAlgorithm
+		}
+		fmt.Printf("      Ensemble.member.Algorithm: %s\n", member.Algorithm.Name)
+
+		// The member must have at least one job definition
+		if len(member.Jobs) == 0 {
+			return fmt.Errorf("ensemble member in index %d must have at least one job definition", i)
+		}
 		// If we have a minicluster, all three sizes must be defined
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniCluster{}) {
 			fmt.Println("      Ensemble.member Type: minicluster")
