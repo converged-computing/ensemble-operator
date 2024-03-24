@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/set"
@@ -28,6 +30,9 @@ import (
 var (
 	defaultSidecarbase   = "ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
 	defaultAlgorithmName = "workload-demand"
+
+	MiniclusterType = "minicluster"
+	UnknownType     = "unknown"
 )
 
 // EnsembleSpec defines the desired state of Ensemble
@@ -101,6 +106,10 @@ type Algorithm struct {
 	// +default="workload-demand"
 	//+optional
 	Name string `json:"name"`
+
+	// Options for the algorithm
+	//+optional
+	Options map[string]intstr.IntOrString `json:"options"`
 }
 
 // Job defines a unit of work for the ensemble to munch on. Munch munch munch.
@@ -139,9 +148,9 @@ type EnsembleStatus struct {
 // Helper function get member type
 func (m *Member) Type() string {
 	if !reflect.DeepEqual(m.MiniCluster, minicluster.MiniCluster{}) {
-		return "minicluster"
+		return MiniclusterType
 	}
-	return "unknown"
+	return UnknownType
 }
 
 func (e *Ensemble) getDefaultAlgorithm() Algorithm {

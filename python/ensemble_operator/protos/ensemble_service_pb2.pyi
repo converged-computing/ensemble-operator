@@ -6,10 +6,12 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class StatusRequest(_message.Message):
-    __slots__ = ("member",)
+    __slots__ = ("member", "algorithm")
     MEMBER_FIELD_NUMBER: _ClassVar[int]
+    ALGORITHM_FIELD_NUMBER: _ClassVar[int]
     member: str
-    def __init__(self, member: _Optional[str] = ...) -> None: ...
+    algorithm: str
+    def __init__(self, member: _Optional[str] = ..., algorithm: _Optional[str] = ...) -> None: ...
 
 class ActionRequest(_message.Message):
     __slots__ = ("member", "algorithm", "action", "payload")

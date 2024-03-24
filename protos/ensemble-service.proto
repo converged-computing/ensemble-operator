@@ -14,6 +14,7 @@ message StatusRequest {
 
     // This is the ensemble member type (e.g., minicluster)
     string member = 1;
+    string algorithm = 2;
 }
 
 // ActionRequest requests an action

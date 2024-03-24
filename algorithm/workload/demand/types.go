@@ -14,5 +14,6 @@ type Job struct {
 }
 
 func (r *SubmitRequest) AddJob(name, command string, count, nodes int32) {
+	// Add jobs of this many
 	r.Jobs = append(r.Jobs, Job{Name: name, Command: command, Count: count, Nodes: nodes})
 }

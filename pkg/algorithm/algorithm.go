@@ -6,12 +6,14 @@ import (
 	"log"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // A lookup of registered algorithms by name
 var (
-	Algorithms   = map[string]AlgorithmInterface{}
-	SubmitAction = "submit"
+	Algorithms      = map[string]AlgorithmInterface{}
+	SubmitAction    = "submit"
+	TerminateAction = "terminate"
 )
 
 // An algorithm interface determines behavior for scaling and termination.
@@ -24,7 +26,7 @@ type AlgorithmInterface interface {
 	Description() string
 
 	// Let's assume an algorithm can make a decision based on the gRPC payload
-	MakeDecision(interface{}, []api.Job) (AlgorithmDecision, error)
+	MakeDecision(*api.Member, interface{}, []api.Job) (AlgorithmDecision, error)
 	Validate(AlgorithmOptions) bool
 
 	// Check that an algorithm is supported for a member type, and the member is valid
@@ -36,9 +38,6 @@ type AlgorithmDecision struct {
 
 	// Scale up or down by size (e.g., negative value is size)
 	Scale int32 `json:"scale"`
-
-	// Terminate the member
-	Terminate bool `json:"terminate"`
 
 	// Send payload back to gRPC sidecar service
 	Payload string `json:"payload"`
@@ -53,12 +52,7 @@ type AlgorithmDecision struct {
 
 // AlgorithmOptions allow packaging named values of different types
 // This is an alternative to using interfaces.
-type AlgorithmOptions struct {
-	BoolOpts map[string]bool
-	StrOpts  map[string]string
-	IntOpts  map[string]int32
-	ListOpts map[string][]string
-}
+type AlgorithmOptions map[string]intstr.IntOrString
 
 // ToJson serializes to json
 func (e *AlgorithmDecision) ToJson() (string, error) {

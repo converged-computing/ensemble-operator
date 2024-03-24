@@ -11,6 +11,9 @@ class MemberBase:
         for key, value in options.items():
             setattr(self, key, value)
 
+    def count_inactive(self, *args, **kwargs):
+        pass
+
     def status(self, *args, **kwargs):
         """
         Ask the member for a status

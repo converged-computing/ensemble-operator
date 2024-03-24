@@ -26,45 +26,9 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 
 	fmt.Println("🦀 MiniCluster Ensemble Update")
 
-	// The MiniCluster service is being provided by the index 0 pod, so we can find it here.
-	clientset, err := kubernetes.NewForConfig(r.RESTConfig)
+	// Get the ip address of our pod
+	ipAddress, err := r.getLeaderAddress(ctx, ensemble, name)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, err
-	}
-
-	// A selector just for the lead broker pod of the ensemble MiniCluster
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
-		// job-name corresponds to the ensemble name plus index in the list
-		"job-name": name,
-		// job index is the lead broker (0) within
-		"job-index": "0",
-	}}
-
-	// There should only be one pod!
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	pods, err := clientset.CoreV1().Pods(ensemble.Namespace).List(ctx, listOptions)
-	if err != nil {
-		fmt.Printf("      Error with listing pods %s\n", err)
-		return ctrl.Result{Requeue: true}, err
-	}
-
-	// Get the ip address of the lead broker pod - requeue if not ready yet
-	var ipAddress string
-	for _, pod := range pods.Items {
-		pod, err := clientset.CoreV1().Pods(ensemble.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
-		if err != nil {
-			fmt.Printf("      Error with getting pods %s\n", err)
-			return ctrl.Result{Requeue: true}, err
-		}
-		fmt.Printf("      Pod IP Address %s\n", pod.Status.PodIP)
-		ipAddress = pod.Status.PodIP
-	}
-
-	// If we don't have an ip address yet, try again later
-	if ipAddress == "" {
-		fmt.Println("      No pods found")
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -92,9 +56,9 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 
 	// The status request comes first to peek at the queue
 	// TODO add secret here, maybe don't need Name
-	in := pb.StatusRequest{Member: member.Type()}
+	in := pb.StatusRequest{Member: member.Type(), Algorithm: algo.Name()}
 	response, err := c.RequestStatus(ctx, &in)
-	if err != nil {
+	if err != nil || response.Status == pb.Response_ERROR {
 		fmt.Printf("      Error with status request %s\n", err)
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -103,8 +67,8 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	// Make a decision based on the queue (and changing jobs matrix)
 	idx := fmt.Sprintf("%d", i)
 	jobs := ensemble.Status.Jobs[idx]
-	decision, err := algo.MakeDecision(response.Payload, jobs)
-	if err != nil {
+	decision, err := algo.MakeDecision(member, response.Payload, jobs)
+	if err != nil || response.Status == pb.Response_ERROR {
 		fmt.Printf("      Decision error %s\n", err)
 		return ctrl.Result{}, err
 	}
@@ -125,6 +89,16 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 			return ctrl.Result{Requeue: true}, err
 		}
 		fmt.Println(response.Status)
+	}
+
+	// Are we terminating? Note that the next check for updated
+	// cannot happen at the same time as a termination request
+	if decision.Action == algorithm.TerminateAction {
+		err = r.Delete(ctx, ensemble)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Since we requeue anyway, we don't check error. But probably should.
@@ -157,4 +131,56 @@ func (r *EnsembleReconciler) updateJobsMatrix(
 		return ctrl.Result{}, nil
 	}
 	return ctrl.Result{Requeue: true}, err
+}
+
+// getLeaderAddress gets the ipAddress of the lead broker
+// In all cases of error we requeue
+func (r *EnsembleReconciler) getLeaderAddress(
+	ctx context.Context,
+	ensemble *api.Ensemble,
+	name string,
+) (string, error) {
+
+	// The MiniCluster service is being provided by the index 0 pod, so we can find it here.
+	clientset, err := kubernetes.NewForConfig(r.RESTConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// A selector just for the lead broker pod of the ensemble MiniCluster
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
+		// job-name corresponds to the ensemble name plus index in the list
+		"job-name": name,
+		// job index is the lead broker (0) within
+		"job-index": "0",
+	}}
+
+	// There should only be one pod!
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	pods, err := clientset.CoreV1().Pods(ensemble.Namespace).List(ctx, listOptions)
+	if err != nil {
+		fmt.Printf("      Error with listing pods %s\n", err)
+		return "", err
+	}
+
+	// Get the ip address of the lead broker pod - requeue if not ready yet
+	var ipAddress string
+	for _, pod := range pods.Items {
+		pod, err := clientset.CoreV1().Pods(ensemble.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
+		if err != nil {
+			fmt.Printf("      Error with getting pods %s\n", err)
+			return "", err
+		}
+		fmt.Printf("      Pod IP Address %s\n", pod.Status.PodIP)
+		ipAddress = pod.Status.PodIP
+	}
+
+	// If we don't have an ip address yet, try again later
+	if ipAddress == "" {
+		fmt.Println("      No pods found")
+		return "", fmt.Errorf("no pods found, not ready yet")
+	}
+	return ipAddress, nil
 }

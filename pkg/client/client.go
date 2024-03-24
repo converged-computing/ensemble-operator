@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	pb "github.com/converged-computing/ensemble-operator/protos"
@@ -36,7 +35,7 @@ func NewClient(host string) (Client, error) {
 		return nil, errors.New("host is required")
 	}
 
-	log.Printf("🥞️ starting client (%s)...", host)
+	fmt.Printf("🥞️ starting client (%s)...", host)
 	c := &EnsembleClient{host: host}
 
 	// Set up a connection to the server.
@@ -86,7 +85,6 @@ func (c *EnsembleClient) RequestStatus(
 	defer cancel()
 
 	response, err := c.service.RequestStatus(ctx, in)
-	fmt.Println(response)
 	return response, err
 }
 
@@ -104,6 +102,5 @@ func (c *EnsembleClient) RequestAction(
 	defer cancel()
 
 	response, err := c.service.RequestAction(ctx, in)
-	fmt.Println(response)
 	return response, err
 }

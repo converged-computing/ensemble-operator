@@ -24,4 +24,7 @@ package types
 type MiniClusterStatus struct {
 	Nodes map[string]int32 `json:"nodes"`
 	Queue map[string]int32 `json:"queue"`
+
+	// Counts of things (e.g., number of checks we've done)
+	Counts map[string]int32 `json:"counts"`
 }

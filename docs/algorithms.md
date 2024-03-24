@@ -6,7 +6,15 @@ The Ensemble Operator relies on a user-selected algorithm to decide on how to sc
 2. Controller: the algorithm requests state, updates state to send back, but also might provide an action for the queue to take.
 3. Advanced: there is a machine learning model inside of the server that is trying to optimize some condition, and when a request for state is done, it calculates the desired action to send to the operator. The operator then assesses the current state it sees and decides to take the action (or not) sending this decision back to the sidecar.
 
-We are going to start with the simplest design, and the details are discussed here.
+We are going to start with the simplest design, and the details are discussed here. Status table:
+
+| Algorithm | Status |
+|-----------|------- |
+| workload-demand | ✅️ implemented |
+| select-fastest-runtime | 🟠️ not yet |
+| select-longest-runtime | 🟠️ not yet |
+| random-selection | 🟠️ not yet |
+| workload-success | 🟠️ not yet |
 
 ## State
 
@@ -70,7 +78,17 @@ This rule should be the default because it's kind of what you'd want for an auto
 - **scale down rule**: check the number of jobs running, waiting in the queue, and max size in the cluster. If the number of jobs waiting hits zero and remains at zero over N checks, decrease the size of the cluster down to the exact number needed that are running.
 - **terminate rule**: check the number of jobs running and waiting. If this value remains 0 over N checks, the work is done and clean up. If there is a parameter set to keep the minicluster running at minimum operation, scale down to 1 node.
 
-This algorithm will use the identifier:
+##### Options
+
+Note that all options must be string or integer (no boolean). So for a boolean put "yes" or "no" instead.
+
+| Name | Description | Default | Choices or Type |
+| -----|---------|-----------|---------|
+| randomize |   randomize based on _group_ of job |"yes" | "yes" "no"  (boolean) |
+| terminateChecks | number of subsequent inactive checks to receive to determine termination status | 10 | integer |
+
+Note that we likely want to randomize across ALL jobs but this isn't supported yet (but can be). I chose this strategy (sending as a group with a count)
+because it's less data to send "over the wire" so to speak! This algorithm will use the identifier:
 
 - workload-demand
 

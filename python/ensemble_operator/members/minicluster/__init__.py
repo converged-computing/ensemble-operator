@@ -34,6 +34,27 @@ class MiniClusterMember(MemberBase):
 
         return payload
 
+    def count_inactive(self, queue):
+        """
+        Keep a count of inactive jobs.
+
+        Each time we cycle through, we want to check if the queue is active
+        (or not). If not, we add one to the increment, because an algorithm can
+        use this to determine a cluster termination status. Return the increment to
+        the counter, plus a boolean to say "reset" (or not)
+        """
+        active_jobs = (
+            queue["new"]
+            + queue["run"]
+            + queue["depend"]
+            + queue["sched"]
+            + queue["priority"]
+            + queue["cleanup"]
+        )
+        if active_jobs == 0:
+            return 1, False
+        return 0, True
+
     def submit(self, payload):
         """
         Receive the flux handle and StatusRequest payload to act on.
@@ -46,7 +67,9 @@ class MiniClusterMember(MemberBase):
 
         for job in payload.get("jobs") or []:
             print(job)
-            command = shlex.split(job["command"])
-            jobspec = flux.job.JobspecV1.from_command(command=command, num_nodes=job["nodes"])
-            jobid = flux.job.submit(self.handle, jobspec)
-            print(f"  ⭐️ Submit job {job['command']}: {jobid}")
+            # Each job has a count
+            for _ in range(job.get("count") or 0):
+                command = shlex.split(job["command"])
+                jobspec = flux.job.JobspecV1.from_command(command=command, num_nodes=job["nodes"])
+                jobid = flux.job.submit(self.handle, jobspec)
+                print(f"  ⭐️ Submit job {job['command']}: {jobid}")

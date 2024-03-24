@@ -41,6 +41,14 @@ spec:
                   name:
                     default: workload-demand
                     type: string
+                  options:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      x-kubernetes-int-or-string: true
+                    description: Options for the algorithm
+                    type: object
                 type: object
               checkSeconds:
                 default: 10
@@ -63,6 +71,14 @@ spec:
                         name:
                           default: workload-demand
                           type: string
+                        options:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            x-kubernetes-int-or-string: true
+                          description: Options for the algorithm
+                          type: object
                       type: object
                     jobs:
                       description: A member is required to define one or more jobs

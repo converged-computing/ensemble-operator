@@ -56,12 +56,48 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
     An EnsembleEndpoint runs inside the cluster.
     """
 
+    def record_event(self, event):
+        """
+        A global log to keep track of state.
+        """
+        global cache
+        if event not in cache:
+            cache[event] = 0
+        cache[event] += 1
+
+    def get_event(self, event, default):
+        """
+        Get an event from the log
+        """
+        global cache
+        return cache.get(event) or default
+
+    def count_inactive(self, increment, reset=False):
+        """
+        Keep a count of inactive jobs.
+
+        Each time we cycle through, we want to check if the queue is active
+        (or not). If not, we add one to the increment, because an algorithm can
+        use this to determine a cluster termination status.
+        """
+        global cache
+        if "count_inactive" not in cache:
+            cache["count_inactive"] = 0
+        if increment:
+            cache["count_inactive"] += increment
+        elif reset:
+            cache["count_inactive"] = 0
+        return cache["count_inactive"]
+
     def RequestStatus(self, request, context):
         """
         Request information about queues and jobs.
         """
         print(context)
         print(f"Member type: {request.member}")
+
+        # Record count of check to our cache
+        self.record_event("status")
 
         # This will raise an error if the member type (e.g., minicluster) is not known
         member = members.get_member(request.member)
@@ -74,6 +110,17 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
             return ensemble_service_pb2.Response(
                 status=ensemble_service_pb2.Response.ResultType.ERROR
             )
+
+        # Add the count of status checks to our payload
+        status_count = self.get_event("status", 0)
+        # Increment by 1 if we are still inactive, otherwise reset
+        increment, reset = member.count_inactive(payload["queue"])
+        inactive_count = self.count_inactive(increment, reset)
+        payload["counts"] = {"status": status_count, "inactive": inactive_count}
+
+        # Retrieve the algorithm to process the request.
+        # TODO this can do additional logic / parsing, not being used yet
+        # alg = algorithms.get_algorithm(request.algorithm)
 
         print(json.dumps(payload))
         return ensemble_service_pb2.Response(
@@ -89,16 +136,18 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         print(f"Action {request.action}")
         print(f"Payload {request.payload}")
 
-        # TODO retrieve the algorithm to process the request
-        # We aren't using this or doing that yet, we are just submitting jobs
-        # alg = algorithms.get_algorithm(request.algorithm)
+        # Assume first successful response
+        status = ensemble_service_pb2.Response.ResultType.SUCCESS
+
+        # The member primarily is directed to take the action
         member = members.get_member(request.member)
         if request.action == "submit":
-            member.submit(request.payload)
-
-        return ensemble_service_pb2.Response(
-            status=ensemble_service_pb2.Response.ResultType.SUCCESS
-        )
+            try:
+                member.submit(request.payload)
+            except Exception as e:
+                print(e)
+                status = ensemble_service_pb2.Response.ResultType.ERROR
+        return ensemble_service_pb2.Response(status=status)
 
 
 def serve(port, workers):

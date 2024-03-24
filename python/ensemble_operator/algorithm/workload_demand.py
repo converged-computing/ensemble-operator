@@ -4,6 +4,8 @@ from .base import AlgorithmBase
 
 # The memory database backend provides an interface to interact with an in memory cluster database
 
+cache = {}
+
 
 class WorkloadDemand(AlgorithmBase):
     """

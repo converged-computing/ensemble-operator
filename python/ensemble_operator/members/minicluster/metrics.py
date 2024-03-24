@@ -67,6 +67,7 @@ def get_queue_metrics():
     counts = {}
     for stateint, count in counter.items():
         state = flux.job.info.statetostr(stateint)
+        state = state.lower()
         counts[state] = count
     for state in lookup:
         if state not in counts:
