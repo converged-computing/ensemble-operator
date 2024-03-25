@@ -72,7 +72,6 @@ endif
 python: python ## Generate python proto files in python
 	# pip install grpcio-tools
 	# pip freeze | grep grpcio-tools
-    # We will put rainbow plus the memory protos here
 	mkdir -p python/ensemble_operator/protos
 	cd python/ensemble_operator/protos
 	python -m grpc_tools.protoc -I./protos --python_out=./python/ensemble_operator/protos --pyi_out=./python/ensemble_operator/protos --grpc_python_out=./python/ensemble_operator/protos ./protos/ensemble-service.proto

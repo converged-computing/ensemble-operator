@@ -47,10 +47,21 @@ spec:
             description: EnsembleSpec defines the desired state of Ensemble
             properties:
               algorithm:
-                default: maintain
                 description: Global algorithmt to use, unless a member has a specific
                   algorithm
-                type: string
+                properties:
+                  name:
+                    default: workload-demand
+                    type: string
+                  options:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      x-kubernetes-int-or-string: true
+                    description: Options for the algorithm
+                    type: object
+                type: object
               checkSeconds:
                 default: 10
                 description: After ensemble creation, how long should we reconcile
@@ -66,9 +77,65 @@ spec:
                     of times, optionally with a maximum or minumum
                   properties:
                     algorithm:
-                      default: maintain
-                      description: Member specific algorithm to use
-                      type: string
+                      description: Member specific algorithm to use If not defined,
+                        defaults to workload-demand
+                      properties:
+                        name:
+                          default: workload-demand
+                          type: string
+                        options:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            x-kubernetes-int-or-string: true
+                          description: Options for the algorithm
+                          type: object
+                      type: object
+                    jobs:
+                      description: A member is required to define one or more jobs
+                        These are passed into status for further updating Jobs
+                      items:
+                        description: Job defines a unit of work for the ensemble to
+                          munch on. Munch munch munch.
+                        properties:
+                          command:
+                            description: Command given to flux
+                            type: string
+                          count:
+                            default: 1
+                            description: Number of jobs to run This can be set to
+                              0 depending on the algorithm E.g., some algorithms decide
+                              on the number to submit
+                            format: int32
+                            type: integer
+                          duration:
+                            description: Duration of jobs Value of 0 (default) indicates
+                              no limit
+                            format: int32
+                            type: integer
+                          name:
+                            description: Name to identify the job group
+                            type: string
+                          nodes:
+                            default: 1
+                            description: Number of nodes for job
+                            format: int32
+                            type: integer
+                          tasks:
+                            description: Number of tasks for the job, defaults to
+                              1 Node count cannot be greater than task count
+                            format: int32
+                            type: integer
+                          workdir:
+                            description: Working directory for job group (if unset,
+                              uses container default)
+                            type: string
+                        required:
+                        - command
+                        - name
+                        type: object
+                      type: array
                     minicluster:
                       description: MiniCluster is of a type MiniCluster, the base
                         unit of an ensemble. We do this because we install a flux
@@ -948,24 +1015,31 @@ spec:
                           - size
                           type: object
                       type: object
-                    sidecarBase:
-                      default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
-                      description: Baseimage for the sidecar that will monitor the
-                        queue. Ensure that the operating systems match!
-                      type: string
-                    sidecarPort:
-                      default: "50051"
-                      type: string
-                    sidecarPullAlways:
-                      description: Always pull the sidecar container (useful for development)
-                      type: boolean
-                    sidecarWorkers:
-                      default: 10
-                      format: int32
-                      type: integer
+                    sidecar:
+                      description: Definition and customization of the sidecar
+                      properties:
+                        image:
+                          default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
+                          description: Baseimage for the sidecar that will monitor
+                            the queue. Ensure that the operating systems match!
+                          type: string
+                        port:
+                          default: "50051"
+                          type: string
+                        pullAlways:
+                          description: Always pull the sidecar container (useful for
+                            development)
+                          type: boolean
+                        workers:
+                          default: 10
+                          format: int32
+                          type: integer
+                      required:
+                      - port
+                      - workers
+                      type: object
                   required:
-                  - sidecarPort
-                  - sidecarWorkers
+                  - jobs
                   type: object
                 type: array
             required:
@@ -974,6 +1048,55 @@ spec:
             type: object
           status:
             description: EnsembleStatus defines the observed state of Ensemble
+            properties:
+              jobs:
+                additionalProperties:
+                  items:
+                    description: Job defines a unit of work for the ensemble to munch
+                      on. Munch munch munch.
+                    properties:
+                      command:
+                        description: Command given to flux
+                        type: string
+                      count:
+                        default: 1
+                        description: Number of jobs to run This can be set to 0 depending
+                          on the algorithm E.g., some algorithms decide on the number
+                          to submit
+                        format: int32
+                        type: integer
+                      duration:
+                        description: Duration of jobs Value of 0 (default) indicates
+                          no limit
+                        format: int32
+                        type: integer
+                      name:
+                        description: Name to identify the job group
+                        type: string
+                      nodes:
+                        default: 1
+                        description: Number of nodes for job
+                        format: int32
+                        type: integer
+                      tasks:
+                        description: Number of tasks for the job, defaults to 1 Node
+                          count cannot be greater than task count
+                        format: int32
+                        type: integer
+                      workdir:
+                        description: Working directory for job group (if unset, uses
+                          container default)
+                        type: string
+                    required:
+                    - command
+                    - name
+                    type: object
+                  type: array
+                description: These lookup values must be string, so we convert from
+                  int32 to it Jobs matrix lookup (what we can mutate)
+                type: object
+            required:
+            - jobs
             type: object
         type: object
     served: true
@@ -1095,7 +1218,7 @@ rules:
 - apiGroups:
   - ensemble.flux-framework.org
   resources:
-  - ensembless
+  - ensembles/status
   verbs:
   - get
   - patch

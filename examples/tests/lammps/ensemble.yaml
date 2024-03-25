@@ -4,10 +4,15 @@ metadata:
   name: ensemble-sample
 spec:
   members:
-  - sidecarPullAlways: true
+  - sidecar:
+      pullAlways: true
+
+    jobs:
+      - name: lammps
+        command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
+
     minicluster:
       spec:
-
         size: 2
         maxSize: 4
         minSize: 2
@@ -19,10 +24,3 @@ spec:
 
           # You can set the working directory if your container WORKDIR is not correct.
           workingDir: /opt/lammps/examples/reaxff/HNS
-          batchRaw: true
-          batch: true
-          commands:
-            post: sleep infinity
-          command: |
-             lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-             sleep infinity

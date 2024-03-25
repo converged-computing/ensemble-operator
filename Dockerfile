@@ -14,8 +14,9 @@ RUN go mod download
 # Copy the go source
 COPY cmd/main.go cmd/main.go
 COPY api/ api/
-COPY internal/controller/ internal/controller/
-COPY internal/client internal/client
+COPY pkg ./pkg
+COPY algorithm ./algorithm
+COPY controllers/ ./controllers
 COPY ./protos protos
 
 # Build

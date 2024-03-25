@@ -17,7 +17,12 @@ class EnsembleOperatorStub(object):
         self.RequestStatus = channel.unary_unary(
             "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestStatus",
             request_serializer=ensemble__service__pb2.StatusRequest.SerializeToString,
-            response_deserializer=ensemble__service__pb2.StatusResponse.FromString,
+            response_deserializer=ensemble__service__pb2.Response.FromString,
+        )
+        self.RequestAction = channel.unary_unary(
+            "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestAction",
+            request_serializer=ensemble__service__pb2.ActionRequest.SerializeToString,
+            response_deserializer=ensemble__service__pb2.Response.FromString,
         )
 
 
@@ -30,13 +35,24 @@ class EnsembleOperatorServicer(object):
         context.set_details("Method not implemented!")
         raise NotImplementedError("Method not implemented!")
 
+    def RequestAction(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details("Method not implemented!")
+        raise NotImplementedError("Method not implemented!")
+
 
 def add_EnsembleOperatorServicer_to_server(servicer, server):
     rpc_method_handlers = {
         "RequestStatus": grpc.unary_unary_rpc_method_handler(
             servicer.RequestStatus,
             request_deserializer=ensemble__service__pb2.StatusRequest.FromString,
-            response_serializer=ensemble__service__pb2.StatusResponse.SerializeToString,
+            response_serializer=ensemble__service__pb2.Response.SerializeToString,
+        ),
+        "RequestAction": grpc.unary_unary_rpc_method_handler(
+            servicer.RequestAction,
+            request_deserializer=ensemble__service__pb2.ActionRequest.FromString,
+            response_serializer=ensemble__service__pb2.Response.SerializeToString,
         ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -67,7 +83,36 @@ class EnsembleOperator(object):
             target,
             "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestStatus",
             ensemble__service__pb2.StatusRequest.SerializeToString,
-            ensemble__service__pb2.StatusResponse.FromString,
+            ensemble__service__pb2.Response.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+        )
+
+    @staticmethod
+    def RequestAction(
+        request,
+        target,
+        options=(),
+        channel_credentials=None,
+        call_credentials=None,
+        insecure=False,
+        compression=None,
+        wait_for_ready=None,
+        timeout=None,
+        metadata=None,
+    ):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestAction",
+            ensemble__service__pb2.ActionRequest.SerializeToString,
+            ensemble__service__pb2.Response.FromString,
             options,
             channel_credentials,
             insecure,

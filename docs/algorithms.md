@@ -6,7 +6,15 @@ The Ensemble Operator relies on a user-selected algorithm to decide on how to sc
 2. Controller: the algorithm requests state, updates state to send back, but also might provide an action for the queue to take.
 3. Advanced: there is a machine learning model inside of the server that is trying to optimize some condition, and when a request for state is done, it calculates the desired action to send to the operator. The operator then assesses the current state it sees and decides to take the action (or not) sending this decision back to the sidecar.
 
-We are going to start with the simplest design, and the details are discussed here.
+We are going to start with the simplest design, and the details are discussed here. Status table:
+
+| Algorithm | Status |
+|-----------|------- |
+| workload-demand | ✅️ implemented |
+| select-fastest-runtime | 🟠️ not yet |
+| select-longest-runtime | 🟠️ not yet |
+| random-selection | 🟠️ not yet |
+| workload-success | 🟠️ not yet |
 
 ## State
 
@@ -31,6 +39,7 @@ We have immense freedom in terms of what we can optimize, which is why designing
 ## Algorithms
 
 Note that these are off the top of my head, and can be extended (or shrunk). Each can (and likely will be) extended with options, but I need to implement the core structure first.
+Note that each algorithm will also define the member types (e.g., minicluster) that are supported.
 
 ### Structure
 
@@ -59,7 +68,7 @@ Algorithms are organized by the following:
  - 🕹️ **control** allows the operator to give higher level cluster feedback to the model or queue to better inform a choice, or simply takes this state into account (e.g., think fair-share across ensemble members or a cluster)
 
 
-#### Workoad Demand (of consistent sizes)
+#### Workoad Demand (of consistent sizes) ✅️
 
 > 🟦️ This algorithm assumes a first come, first serve submission (the queue is populated by the batch job) and the cluster resources are adapted to support the needs of the queue (not implemented yet).
 
@@ -69,11 +78,39 @@ This rule should be the default because it's kind of what you'd want for an auto
 - **scale down rule**: check the number of jobs running, waiting in the queue, and max size in the cluster. If the number of jobs waiting hits zero and remains at zero over N checks, decrease the size of the cluster down to the exact number needed that are running.
 - **terminate rule**: check the number of jobs running and waiting. If this value remains 0 over N checks, the work is done and clean up. If there is a parameter set to keep the minicluster running at minimum operation, scale down to 1 node.
 
-This algorithm will use the identifier:
+##### Options
+
+Note that all options must be string or integer (no boolean). So for a boolean put "yes" or "no" instead.
+
+| Name | Description | Default | Choices or Type |
+| -----|---------|-----------|---------|
+| randomize |   randomize based on _group_ of job |"yes" | "yes" "no"  (boolean) |
+| terminateChecks | number of subsequent inactive checks to receive to determine termination status | 10 | integer |
+| disableTermination | do not terminate at the end | "no" | "yes" "no"  (boolean) |
+| scaleDownStrategy | Strategy to choose number of nodes to scale down | "excessNodes" | "excessNodes" |
+| scaleUpStrategy | Strategy to choose number of nodes to scale up | "nextJob" | "smallestJob" "nextJob" "randomJob" |
+| scaleChecks | number of subsequent checks with queue at current or larger size to warrant scaling up or down | 5 | integer |
+
+For `scaleUpStrategy` we currently are scoping the chose to one job (although that can change) as a more conservative approach.
+
+- **smallestJob**: choose the smallest size to scale up by, up to the cluster max size.
+- **largestJob**: choose the largest job to scale up by, up to the cluster max size (in practice this does not guarantee to run that sized job).
+- **nextJob**: choose the next job to scale up by, up to the cluster max size.
+- **randomJob**: selects a random job size from the queue
+
+Note that since this algorithm is reactive, we choose the default of "nextJob" for our strategy. Since we are not
+controlling submission, this means if you choose another strategy, it may not necessarily lead to that job size being
+chosen (e.g., a random job is size 10 but you have 2x size 5 in the queue before it, they will fill it up first).
+because it's less data to send "over the wire" so to speak! This algorithm will use the identifier:
+
+For `scaleDownStrategy` I just implemented one so far - given every number of scale checks N, scale down by the excess nodes if
+the number of free nodes remains constant or increases over some number of checks. This pattern would indicate that resources are
+freeing up and they are not being filled. Note that we set the number of scale down checks to always be 2 more than scale up checks,
+that way there is at least one cycle between the two.
 
 - workload-demand
 
-#### Random selection
+#### Random selection 🟠️
 
 > 🟦️ This algorithm chooses jobs to run at random, and the queue retroactively responds.
 
@@ -89,7 +126,7 @@ This algorithm will use the identifier:
 - random-selection
 
 
-#### Workload Success
+#### Workload Success 🟠️
 
 > 🕹️ Continue running and submitting jobs until a number of successful or valid is reached.
 
@@ -104,7 +141,7 @@ This algorithm will use the identifier:
 - workload-success
 
 
-#### Select Fastest Runtime First
+#### Select Fastest Runtime First 🟠️
 
 > 🚗️ A model based algorithm that selects work based on building a model of runtimes (not implemented yet)
 
@@ -133,7 +170,7 @@ This algorithm will use the identifier:
 This approach could arguably be improved by taking in a pre-existing model at the loading time, so we start all ready to go and don't need to wait to build the model. I am planning on using River for a streamling ML approach.
 
 
-#### Select Longest Runtime First
+#### Select Longest Runtime First 🟠️
 
 > 🚗️ Model based algorithm to select work based
 
@@ -142,7 +179,7 @@ This algorithm is the same as the above, except we select for the longest runtim
 - select-longest-runtime
 
 
-#### Cost Based Selection
+#### Cost Based Selection 🟠️
 
 > 🕹️ Select an ensemble member to schedule to based on cost.
 
