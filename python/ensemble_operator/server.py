@@ -82,6 +82,19 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         """
         return self.increment_period("inactive_periods", increment, reset)
 
+    def reset_counter(self, payload):
+        """
+        Reset a named counter
+        """
+        global cache
+        payload = json.loads(payload)
+        if isinstance(payload, str):
+            payload = [payload]
+        for key in payload:
+            if key in cache:
+                print(f"Resetting counter for {key}")
+                cache[key] = 0
+
     def count_waiting_periods(self, current_waiting):
         """
         Count subsequent waiting periods that are == or greater than last count
@@ -203,6 +216,15 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
             except Exception as e:
                 print(e)
                 status = ensemble_service_pb2.Response.ResultType.ERROR
+
+        # Reset a counter, typically after an update event
+        if request.action == "resetCounter":
+            try:
+                self.reset_counter(request.payload)
+            except Exception as e:
+                print(e)
+                status = ensemble_service_pb2.Response.ResultType.ERROR
+
         return ensemble_service_pb2.Response(status=status)
 
 
