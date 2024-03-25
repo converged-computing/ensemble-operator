@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -129,19 +130,32 @@ type Job struct {
 	//+optional
 	Count int32 `json:"count"`
 
+	// Number of nodes for job
 	// +kubebuilder:default=1
 	// +default=1
 	//+optional
 	Nodes int32 `json:"nodes"`
 
-	// TODO add label here for ML model category
+	// Number of tasks for the job, defaults to 1
+	// Node count cannot be greater than task count
+	//+optional
+	Tasks int32 `json:"tasks"`
 
+	// Working directory for job group (if unset, uses container default)
+	//+optional
+	Workdir string `json:"workdir"`
+
+	// Duration of jobs
+	// Value of 0 (default) indicates no limit
+	//+optional
+	Duration int32 `json:"duration"`
 }
 
 // EnsembleStatus defines the observed state of Ensemble
 type EnsembleStatus struct {
 
-	// Jobs
+	// These lookup values must be string, so we convert from int32 to it
+	// Jobs matrix lookup (what we can mutate)
 	Jobs map[string][]Job `json:"jobs"`
 }
 
@@ -153,6 +167,68 @@ func (m *Member) Type() string {
 	return UnknownType
 }
 
+// getStringOption returns a string option from the member
+func (m *Member) StringToBooleanOption(
+	key string,
+	defaultValue bool,
+) bool {
+
+	value := defaultValue
+	options := m.Algorithm.Options
+	rOpt, ok := options[key]
+	if ok {
+		if rOpt.StrVal == "no" {
+			value = false
+		} else if rOpt.StrVal == "yes" {
+			value = true
+		}
+	}
+	return value
+}
+
+// getStringOption returns a string option from the member
+func (m *Member) GetStringOption(
+	key string,
+	defaultValue string,
+) string {
+
+	value := defaultValue
+	options := m.Algorithm.Options
+	rOpt, ok := options[key]
+	if ok {
+		value = rOpt.StrVal
+	}
+	return value
+}
+
+// getPositiveIntegerOption returns an option > 0
+func (m *Member) GetPositiveIntegerOption(
+	key string,
+	defaultValue int,
+) int {
+
+	options := m.Algorithm.Options
+	value := defaultValue
+	tOpt, ok := options[key]
+	if ok {
+		if tOpt.IntVal > 0 {
+			value = tOpt.IntValue()
+		}
+	}
+	return value
+}
+
+// Size is a common function to return a member size
+// This should only be used on init, as the size is then stored in status
+// As long as the MiniCluster is not created, the actual spec size won't
+// be used again.
+func (m *Member) Size() int32 {
+	if !reflect.DeepEqual(m.MiniCluster, minicluster.MiniCluster{}) {
+		return m.MiniCluster.Spec.Size
+	}
+	return 0
+}
+
 func (e *Ensemble) getDefaultAlgorithm() Algorithm {
 	defaultAlgorithm := e.Spec.Algorithm
 
@@ -161,6 +237,10 @@ func (e *Ensemble) getDefaultAlgorithm() Algorithm {
 		defaultAlgorithm = Algorithm{Name: defaultAlgorithmName}
 	}
 	return defaultAlgorithm
+}
+
+func (e *Ensemble) RequeueAfter() time.Duration {
+	return time.Duration(time.Duration(e.Spec.CheckSeconds) * time.Second)
 }
 
 // Validate ensures we have data that is needed, and sets defaults if needed
@@ -208,10 +288,30 @@ func (e *Ensemble) Validate() error {
 			if job.Count <= 0 {
 				job.Count = 1
 			}
+			if job.Tasks != 0 && job.Nodes > job.Tasks {
+				return fmt.Errorf("issue with job matrix for ensemble member in index %d: node count cannot be greater than task count", i)
+			}
 		}
 
 		// If we have a minicluster, all three sizes must be defined
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniCluster{}) {
+
+			// If they don't set it, they get a very small size :)
+			if member.MiniCluster.Spec.Size <= 0 {
+				member.MiniCluster.Spec.Size = 1
+			}
+			// If MaxSize is not set, assume it's the size
+			// The Flux Operator does other validation checks, but we need this here!
+			if member.MiniCluster.Spec.MaxSize == 0 {
+				member.MiniCluster.Spec.MaxSize = member.MiniCluster.Spec.Size
+			}
+
+			// MiniCluster specific validation for jobs - we cannot go over max size
+			for _, job := range member.Jobs {
+				if job.Nodes > member.MiniCluster.Spec.MaxSize {
+					return fmt.Errorf("job node requirement cannot exceed max size of %d", member.MiniCluster.Spec.MaxSize)
+				}
+			}
 
 			fmt.Println("      Ensemble.member Type: minicluster")
 			if member.Sidecar.Image == "" {

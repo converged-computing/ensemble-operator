@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
-	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ensureEnsemble ensures that the ensemle is created!
@@ -67,7 +66,7 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	// Make a decision based on the queue (and changing jobs matrix)
 	idx := fmt.Sprintf("%d", i)
 	jobs := ensemble.Status.Jobs[idx]
-	decision, err := algo.MakeDecision(member, response.Payload, jobs)
+	decision, err := algo.MakeDecision(ensemble, member, response.Payload, jobs)
 	if err != nil || response.Status == pb.Response_ERROR {
 		fmt.Printf("      Decision error %s\n", err)
 		return ctrl.Result{}, err
@@ -76,19 +75,27 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	// If we are requesting an action to the queue (sidecar gRPC) do it
 	// This second request should be OK because I think it will be infrequent.
 	// Most algorithms should do submission in bulk (infrequently) and then monitor
-	if decision.Action != "" {
+	if decision.Action == algorithm.JobsMatrixUpdateAction {
 		in := pb.ActionRequest{
 			Member:    member.Type(),
 			Algorithm: algo.Name(),
 			Payload:   decision.Payload,
-			Action:    decision.Action,
+			Action:    algorithm.SubmitAction,
 		}
 		response, err := c.RequestAction(ctx, &in)
+		fmt.Println(response.Status)
 		if err != nil {
 			fmt.Printf("      Error with action request %s\n", err)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
-		fmt.Println(response.Status)
+		// Since we requeue anyway, we don't check error. But probably should.
+		return r.updateJobsMatrix(ctx, ensemble, decision.Jobs, i)
+	}
+
+	// Are we done? If we might have terminated by the user indicated
+	// not to, just reconcile for a last time
+	if decision.Action == algorithm.CompleteAction {
+		return ctrl.Result{}, err
 	}
 
 	// Are we terminating? Note that the next check for updated
@@ -101,36 +108,15 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	// Since we requeue anyway, we don't check error. But probably should.
-	if decision.Updated {
-		return r.updateJobsMatrix(ctx, ensemble, decision.Jobs, i)
+	// Are we scaling?
+	if decision.Action == algorithm.ScaleAction && decision.Scale > 0 {
+		if member.Type() == api.MiniclusterType {
+			return r.updateMiniClusterSize(ctx, ensemble, decision.Scale, name, idx)
+		}
 	}
+
 	// This is the last return, this says to check every N seconds
-	return ctrl.Result{Requeue: true}, nil
-}
-
-// updateJobsMatrix to include jobs
-func (r *EnsembleReconciler) updateJobsMatrix(
-	ctx context.Context,
-	ensemble *api.Ensemble,
-	jobs []api.Job,
-	i int,
-) (ctrl.Result, error) {
-	patch := kclient.MergeFrom(ensemble.DeepCopy())
-
-	idx := fmt.Sprintf("%d", i)
-
-	ensemble.Status.Jobs[idx] = jobs
-	// Should probably check error here
-	err := r.Status().Update(ctx, ensemble)
-	if err != nil {
-		return ctrl.Result{}, nil
-	}
-	err = r.Patch(ctx, ensemble, patch)
-	if err != nil {
-		return ctrl.Result{}, nil
-	}
-	return ctrl.Result{Requeue: true}, err
+	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, nil
 }
 
 // getLeaderAddress gets the ipAddress of the lead broker

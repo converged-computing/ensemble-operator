@@ -68,7 +68,7 @@ Algorithms are organized by the following:
  - 🕹️ **control** allows the operator to give higher level cluster feedback to the model or queue to better inform a choice, or simply takes this state into account (e.g., think fair-share across ensemble members or a cluster)
 
 
-#### Workoad Demand (of consistent sizes)
+#### Workoad Demand (of consistent sizes) ✅️
 
 > 🟦️ This algorithm assumes a first come, first serve submission (the queue is populated by the batch job) and the cluster resources are adapted to support the needs of the queue (not implemented yet).
 
@@ -86,13 +86,25 @@ Note that all options must be string or integer (no boolean). So for a boolean p
 | -----|---------|-----------|---------|
 | randomize |   randomize based on _group_ of job |"yes" | "yes" "no"  (boolean) |
 | terminateChecks | number of subsequent inactive checks to receive to determine termination status | 10 | integer |
+| disableTermination | do not terminate at the end | "no" | "yes" "no"  (boolean) |
+| scaleUpStrategy | Strategy to choose number of nodes to scale up | "nextJob" | "smallestJob" "nextJob" "randomJob" |
+| scaleChecks | number of subsequent checks with queue at current or larger size to warrant scaling up or down | 5 | integer |
 
-Note that we likely want to randomize across ALL jobs but this isn't supported yet (but can be). I chose this strategy (sending as a group with a count)
+For `ScaleUpStrategy` we currently are scoping the chose to one job (although that can change) as a more conservative approach.
+
+- **smallestJob**: choose the smallest size to scale up by, up to the cluster max size.
+- **largestJob**: choose the largest job to scale up by, up to the cluster max size (in practice this does not guarantee to run that sized job).
+- **nextJob**: choose the next job to scale up by, up to the cluster max size.
+- **randomJob**: selects a random job size from the queue
+
+Note that since this algorithm is reactive, we choose the default of "nextJob" for our strategy. Since we are not
+controlling submission, this means if you choose another strategy, it may not necessarily lead to that job size being
+chosen (e.g., a random job is size 10 but you have 2x size 5 in the queue before it, they will fill it up first).
 because it's less data to send "over the wire" so to speak! This algorithm will use the identifier:
 
 - workload-demand
 
-#### Random selection
+#### Random selection 🟠️
 
 > 🟦️ This algorithm chooses jobs to run at random, and the queue retroactively responds.
 
@@ -108,7 +120,7 @@ This algorithm will use the identifier:
 - random-selection
 
 
-#### Workload Success
+#### Workload Success 🟠️
 
 > 🕹️ Continue running and submitting jobs until a number of successful or valid is reached.
 
@@ -123,7 +135,7 @@ This algorithm will use the identifier:
 - workload-success
 
 
-#### Select Fastest Runtime First
+#### Select Fastest Runtime First 🟠️
 
 > 🚗️ A model based algorithm that selects work based on building a model of runtimes (not implemented yet)
 
@@ -152,7 +164,7 @@ This algorithm will use the identifier:
 This approach could arguably be improved by taking in a pre-existing model at the loading time, so we start all ready to go and don't need to wait to build the model. I am planning on using River for a streamling ML approach.
 
 
-#### Select Longest Runtime First
+#### Select Longest Runtime First 🟠️
 
 > 🚗️ Model based algorithm to select work based
 
@@ -161,7 +173,7 @@ This algorithm is the same as the above, except we select for the longest runtim
 - select-longest-runtime
 
 
-#### Cost Based Selection
+#### Cost Based Selection 🟠️
 
 > 🕹️ Select an ensemble member to schedule to based on cost.
 

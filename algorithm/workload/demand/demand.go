@@ -7,14 +7,8 @@ import (
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	"github.com/converged-computing/ensemble-operator/pkg/algorithm"
-	"github.com/converged-computing/ensemble-operator/pkg/types"
 	"k8s.io/utils/set"
 )
-
-// options for this algorithm include:
-// 1. randomize for the initial jobs submission (defaults to true)
-// 2. terminateChecks: number of checks (of an empty queue) to do as
-//    an indicator for termination
 
 const (
 	AlgorithmName        = "workload-demand"
@@ -26,6 +20,13 @@ var (
 	AlgorithmSupports      = set.New("minicluster")
 	defaultRandomizeOption = true
 	defaultTerminateChecks = 10
+	defaultScaleChecks     = 5
+
+	scaleUpStrategyNextJob     = "nextJob"
+	scaleUpStrategySmallestJob = "smallestJob"
+	scaleUpStrategyLargestJob  = "largestJob"
+	scaleUpStrategyRandomJob   = "randomJob"
+	defaultScaleUpStrategy     = scaleUpStrategyNextJob
 )
 
 // Workload demand algorithm takes two options
@@ -67,24 +68,19 @@ func (e WorkloadDemand) getUpdatedJobs(
 	updatedJobs := make([]api.Job, len(jobs))
 	for j, job := range jobs {
 		if job.Count > 0 {
-			req.AddJob(job.Name, job.Command, job.Count, job.Nodes)
+			req.AddJob(job)
 			job.Count = 0
 			updated = true
 			updatedJobs[j] = job
 		}
 	}
 
-	// Is there are request to not randomize?
-	doRandomize := defaultRandomizeOption
-	options := member.Algorithm.Options
-	rOpt, ok := options["randomize"]
-	if ok {
-		if rOpt.StrVal == "no" {
-			doRandomize = false
-		}
-	}
+	// Do we want to randomize by group or job?
+	doRandomize := member.StringToBooleanOption("randomize", defaultRandomizeOption)
+	req.Randomize = doRandomize
 
-	// Randomly shuffle the jobs - this could be a parameter to the algorithm
+	// Randomly shuffle the job groups - random shufflig of ALL jobs happens at the queue level
+	// For efficient transfer of matrix
 	if doRandomize {
 		if len(updatedJobs) > 0 {
 			rand.Shuffle(len(updatedJobs), func(i, j int) { updatedJobs[i], updatedJobs[j] = updatedJobs[j], updatedJobs[i] })
@@ -94,10 +90,12 @@ func (e WorkloadDemand) getUpdatedJobs(
 	return &req, updatedJobs, updated
 }
 
-// MakeDecision for the workload-demand has the goal to:
-// 1. Always submit all remaining jobs, in a random order
-// 2. if we have exceeded
+// MakeDecision for the workload-demand determines if we want to submit
+// jobs (the inital request will determine this is needed), terminate
+// or complete a member (based on an inactive state over some number of
+// iterations) or scale the cluster up or down.
 func (e WorkloadDemand) MakeDecision(
+	ensemble *api.Ensemble,
 	member *api.Member,
 	payload interface{},
 	jobs []api.Job,
@@ -112,86 +110,55 @@ func (e WorkloadDemand) MakeDecision(
 
 	// Only look to do another action (scale, terminate, etc) if we don't have updated jobs
 	if !updated {
-		terminate, err := e.terminateMember(member, payload)
+
+		// Check for termination or completion first
+		terminate, done, err := e.terminateMember(member, payload)
 		if err != nil {
 			return decision, err
 		}
-		if terminate {
+
+		// This means we are done, stop checking but do not terminate
+		if done {
+			decision.Action = algorithm.CompleteAction
+		} else if terminate {
 			decision.Action = algorithm.TerminateAction
 		}
-		return decision, nil
+
+		// If we have a terminate or complete action, return it
+		if decision.Action != "" {
+			return decision, nil
+		}
+
+		// Otherwise, continue and check for scaling
+		scale, err := e.scaleMember(member, payload)
+		if err != nil {
+			return decision, err
+		}
+
+		// Nonzero indicates a decision to scale up or down
+		if scale != 0 {
+			decision.Action = algorithm.ScaleAction
+			decision.Scale = scale
+		}
+		return decision, err
 
 	} else {
 
+		// UpdatedJobs warrant the submit action
 		// Serialize the json into a payload
 		response, err := json.Marshal(req)
 		if err != nil {
 			return decision, err
 		}
 		decision = algorithm.AlgorithmDecision{
-			Updated: updated,
+
+			// This will be handed to the cluster as the SubmitAction
+			Action:  algorithm.JobsMatrixUpdateAction,
 			Payload: string(response),
 			Jobs:    updatedJobs,
 		}
 	}
-
-	// If we have updates, ask the queue to submit them
-	if updated {
-		decision.Action = algorithm.SubmitAction
-	}
 	return decision, nil
-}
-
-// terminateMember uses the payload from the member to determine
-// if we have reached termination criteria
-func (e WorkloadDemand) terminateMember(member *api.Member, payload interface{}) (bool, error) {
-
-	options := member.Algorithm.Options
-
-	// Should we change the default number of checks?
-	numberChecks := defaultTerminateChecks
-	tOpt, ok := options["terminateChecks"]
-	if ok {
-		if tOpt.IntVal > 0 {
-			numberChecks = tOpt.IntValue()
-		}
-	}
-
-	// Parse the payload depending on the type
-	if member.Type() == api.MiniclusterType {
-		status := types.MiniClusterStatus{}
-		err := json.Unmarshal([]byte(payload.(string)), &status)
-		if err != nil {
-			fmt.Printf("Error unmarshaling payload: %s\n", err)
-			return false, err
-		}
-		fmt.Println(status)
-
-		// Do we have an inactive count (subsequent times queue has not moved)?
-		inactive, ok := status.Counts["inactive"]
-		if !ok {
-			fmt.Println("Cannot find inactive count")
-			return false, nil
-		}
-
-		// Queue needs to be empty, nothing running, etc.
-		activeJobs := status.Queue["new"] + status.Queue["priority"] + status.Queue["sched"] + status.Queue["run"] + status.Queue["cleanup"]
-
-		// Conditions for termination:
-		// 1. Inactive count exceeds our threshold
-		// 2. Still no active jobs (above would be impossible if there were, but we double check)
-		if inactive > int32(numberChecks) && activeJobs == 0 {
-			fmt.Printf("Member %s is marked for termination\n", member.Type())
-			return true, nil
-		}
-
-		// Here is where we terminate
-		fmt.Printf("Member %s has active jobs or has not met threshold for for termination\n", member.Type())
-		return false, nil
-	}
-
-	fmt.Printf("Warning: unknown member type %s\n", member.Type())
-	return false, nil
 }
 
 // Validate ensures that the sections provided are in the list we know

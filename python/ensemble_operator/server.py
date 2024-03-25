@@ -72,7 +72,7 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         global cache
         return cache.get(event) or default
 
-    def count_inactive(self, increment, reset=False):
+    def count_inactive_periods(self, increment, reset=False):
         """
         Keep a count of inactive jobs.
 
@@ -80,19 +80,47 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         (or not). If not, we add one to the increment, because an algorithm can
         use this to determine a cluster termination status.
         """
+        return self.increment_period("inactive_periods", increment, reset)
+
+    def count_waiting_periods(self, current_waiting):
+        """
+        Count subsequent waiting periods that are == or greater than last count
+
+        This is an indicator that the queue is not moving. We are interested to see
+        if the number of waiting has changed. We would want to trigger scaling events,
+        for example, if the number waiting does not change over some period.
+        We return the number waiting, and waiting periods >= the last check.
+        """
         global cache
-        if "count_inactive" not in cache:
-            cache["count_inactive"] = 0
+        previous_waiting = cache.get("waiting")
+
+        # If we don't have a previous value, it's akin to 0
+        # And this is an increase in waiting
+        if previous_waiting is None or (current_waiting >= previous_waiting):
+            return self.increment_period("waiting_periods", 1, False)
+
+        # If we get here, the current waiting is < previous waiting, so we reset
+        return self.increment_period("waiting_periods", 0, True)
+
+    def increment_period(self, key, increment, reset):
+        """
+        Given a counter in in the cache, increment it or reset
+        """
+        global cache
+        if key not in cache:
+            cache[key] = 0
         if increment:
-            cache["count_inactive"] += increment
+            cache[key] += increment
         elif reset:
-            cache["count_inactive"] = 0
-        return cache["count_inactive"]
+            cache[key] = 0
+        return cache[key]
 
     def RequestStatus(self, request, context):
         """
         Request information about queues and jobs.
         """
+        global cache
+
         print(context)
         print(f"Member type: {request.member}")
 
@@ -111,16 +139,24 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
                 status=ensemble_service_pb2.Response.ResultType.ERROR
             )
 
-        # Add the count of status checks to our payload
-        status_count = self.get_event("status", 0)
-        # Increment by 1 if we are still inactive, otherwise reset
-        increment, reset = member.count_inactive(payload["queue"])
-        inactive_count = self.count_inactive(increment, reset)
-        payload["counts"] = {"status": status_count, "inactive": inactive_count}
+        # Prepare counts for the payload
+        payload["counts"] = {}
 
-        # Retrieve the algorithm to process the request.
-        # TODO this can do additional logic / parsing, not being used yet
-        # alg = algorithms.get_algorithm(request.algorithm)
+        # Add the count of status checks to our payload
+        payload["counts"]["status"] = self.get_event("status", 0)
+
+        # Increment by 1 if we are still inactive, otherwise reset
+        # note that we don't send over an actual inactive count, inactive here is the
+        # period, largely because we don't need it. This isn't true for waiting
+        increment, reset = member.count_inactive(payload["queue"])
+        payload["counts"]["inactive"] = self.count_inactive_periods(increment, reset)
+
+        # Increment by 1 if number waiting is the same or greater
+        waiting_jobs = member.count_waiting(payload["queue"])
+        payload["counts"]["waiting_periods"] = self.count_waiting_periods(payload["counts"])
+
+        # This needs to be updated after so the cache has the previous waiting for the call above
+        payload["counts"]["waiting"] = waiting_jobs
 
         print(json.dumps(payload))
         return ensemble_service_pb2.Response(

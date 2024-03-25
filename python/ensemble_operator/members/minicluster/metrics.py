@@ -38,6 +38,45 @@ def get_node_metrics():
     }
 
 
+def get_next_jobs():
+    """
+    Get the next 10 jobs in the queue
+    """
+    jobs = flux.job.job_list(handle)
+    listing = jobs.get()
+    next_jobs = []
+
+    for i, item in enumerate(listing.get("jobs", [])):
+        nodes = item["nnodes"]
+        next_jobs.append(nodes)
+
+        # Arbitrary cutoff
+        if i == 10:
+            break
+
+    return next_jobs
+
+
+def get_waiting_sizes():
+    """
+    Get waiting sizes (nodes that each jobs needs)
+
+    This is the granularity the ensemble operator can adjust.
+    """
+    jobs = flux.job.job_list(handle)
+    listing = jobs.get()
+    counts = {}
+
+    # Get counts of nodes needed
+    # this is a lookup of node counts to jobs that need it
+    for item in listing.get("jobs", []):
+        key = item["nnodes"]
+        if key not in counts:
+            counts[key] = 0
+        counts[key] += 1
+    return counts
+
+
 def get_queue_metrics():
     """
     Update metrics for counts of jobs in the queue
@@ -72,6 +111,7 @@ def get_queue_metrics():
     for state in lookup:
         if state not in counts:
             counts[state] = 0
+
     return counts
 
 
@@ -79,4 +119,6 @@ def get_queue_metrics():
 metrics = {
     "nodes": get_node_metrics,
     "queue": get_queue_metrics,
+    "waiting": get_waiting_sizes,
+    "nextJobs": get_next_jobs,
 }

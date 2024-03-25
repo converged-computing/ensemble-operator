@@ -97,13 +97,28 @@ spec:
                               on the number to submit
                             format: int32
                             type: integer
+                          duration:
+                            description: Duration of jobs Value of 0 (default) indicates
+                              no limit
+                            format: int32
+                            type: integer
                           name:
                             description: Name to identify the job group
                             type: string
                           nodes:
                             default: 1
+                            description: Number of nodes for job
                             format: int32
                             type: integer
+                          tasks:
+                            description: Number of tasks for the job, defaults to 1
+                              Node count cannot be greater than task count
+                            format: int32
+                            type: integer
+                          workdir:
+                            description: Working directory for job group (if unset,
+                              uses container default)
+                            type: string
                         required:
                         - command
                         - name
@@ -1028,19 +1043,35 @@ spec:
                           to submit
                         format: int32
                         type: integer
+                      duration:
+                        description: Duration of jobs Value of 0 (default) indicates
+                          no limit
+                        format: int32
+                        type: integer
                       name:
                         description: Name to identify the job group
                         type: string
                       nodes:
                         default: 1
+                        description: Number of nodes for job
                         format: int32
                         type: integer
+                      tasks:
+                        description: Number of tasks for the job, defaults to 1 Node
+                          count cannot be greater than task count
+                        format: int32
+                        type: integer
+                      workdir:
+                        description: Working directory for job group (if unset, uses
+                          container default)
+                        type: string
                     required:
                     - command
                     - name
                     type: object
                   type: array
-                description: Jobs
+                description: These lookup values must be string, so we convert from
+                  int32 to it Jobs matrix lookup (what we can mutate)
                 type: object
             required:
             - jobs

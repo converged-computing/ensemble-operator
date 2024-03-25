@@ -30,7 +30,6 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 
 	// Create a new job if it does not exist
 	if err != nil {
-
 		if errors.IsNotFound(err) {
 			mc := r.newMiniCluster(name, ensemble, member, spec)
 			fmt.Println("      Creating a new Ensemble MiniCluster")
@@ -67,6 +66,43 @@ func (r *EnsembleReconciler) getExistingMiniCluster(
 		existing,
 	)
 	return existing, err
+}
+
+// updateMiniCluster size gets its current size from the status and updated
+// if it is valid
+func (r *EnsembleReconciler) updateMiniClusterSize(
+	ctx context.Context,
+	ensemble *api.Ensemble,
+	scale int32,
+	name, idx string,
+) (ctrl.Result, error) {
+
+	mc, err := r.getExistingMiniCluster(ctx, name, ensemble)
+
+	// Check the size against what we have
+	size := mc.Spec.Size
+
+	// We can only scale if we are left with at least one node
+	// If we want to scale to 0, this should be a termination event
+	newSize := size + scale
+	if newSize < 1 {
+		fmt.Printf("        Ignoring scaling event, new size %d is < 1\n", newSize)
+		return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
+	}
+	if newSize <= mc.Spec.MaxSize {
+		fmt.Printf("        Updating size from %d to %d\n", size, newSize)
+		mc.Spec.Size = newSize
+		err = r.Update(ctx, mc)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+	} else {
+		fmt.Printf("        Ignoring scaling event %d to %d, outside allowed boundary\n", size, newSize)
+	}
+
+	// Check again in the allotted time
+	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
 }
 
 // newMiniCluster creates a new ensemble minicluster

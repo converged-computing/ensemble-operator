@@ -11,9 +11,16 @@ import (
 
 // A lookup of registered algorithms by name
 var (
-	Algorithms      = map[string]AlgorithmInterface{}
-	SubmitAction    = "submit"
-	TerminateAction = "terminate"
+	Algorithms = map[string]AlgorithmInterface{}
+
+	// Operator Actions
+	TerminateAction        = "terminate"
+	CompleteAction         = "complete"
+	ScaleAction            = "scale"
+	JobsMatrixUpdateAction = "updateJobsMatrix"
+
+	// Queue actions
+	SubmitAction = "submit"
 )
 
 // An algorithm interface determines behavior for scaling and termination.
@@ -26,7 +33,7 @@ type AlgorithmInterface interface {
 	Description() string
 
 	// Let's assume an algorithm can make a decision based on the gRPC payload
-	MakeDecision(*api.Member, interface{}, []api.Job) (AlgorithmDecision, error)
+	MakeDecision(*api.Ensemble, *api.Member, interface{}, []api.Job) (AlgorithmDecision, error)
 	Validate(AlgorithmOptions) bool
 
 	// Check that an algorithm is supported for a member type, and the member is valid
@@ -42,12 +49,17 @@ type AlgorithmDecision struct {
 	// Send payload back to gRPC sidecar service
 	Payload string `json:"payload"`
 
-	// Action to ask the queue to take
+	// Action to ask the queue or operator to take
 	Action string `json:"action"`
 
-	// Update determines if the spec was updated (warranting a patch)
-	Updated bool `json:"updated"`
-	Jobs    []api.Job
+	// Jobs matrix
+	Jobs []api.Job
+}
+
+// IsQueueRequest determines if the action should be sent to the queue
+// Right now this is only the submit action
+func (a *AlgorithmDecision) IsQueueRequest() bool {
+	return a.Action == SubmitAction
 }
 
 // AlgorithmOptions allow packaging named values of different types
