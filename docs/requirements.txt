@@ -1,0 +1,17 @@
+sphinx
+markupsafe
+sphinx_immaterial
+numpy
+pandas
+matplotlib
+nbsphinx
+jupyter_client
+notebook
+nbconvert
+ipykernel
+recommonmark
+sphinx_markdown_tables
+sphinx-copybutton
+readthedocs-sphinx-search
+myst-parser
+pymdown-extensions
