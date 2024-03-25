@@ -17,6 +17,7 @@ var (
 	TerminateAction        = "terminate"
 	CompleteAction         = "complete"
 	ScaleAction            = "scale"
+	ResetCounterAction     = "resetCounter"
 	JobsMatrixUpdateAction = "updateJobsMatrix"
 
 	// Queue actions

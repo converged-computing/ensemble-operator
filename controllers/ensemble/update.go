@@ -111,6 +111,18 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	// Are we scaling?
 	if decision.Action == algorithm.ScaleAction && decision.Scale > 0 {
 		if member.Type() == api.MiniclusterType {
+
+			// Issue a request to reset the counters for scaling first
+			// If this fails it's not the end of the world -it works
+			// without doing it, but better to avoid a possible race
+			in := pb.ActionRequest{
+				Member:    member.Type(),
+				Algorithm: algo.Name(),
+				Payload:   "[\"free_nodes\", \"waiting_periods\"]",
+				Action:    algorithm.ResetCounterAction,
+			}
+			response, _ := c.RequestAction(ctx, &in)
+			fmt.Println(response.Status)
 			return r.updateMiniClusterSize(ctx, ensemble, decision.Scale, name, idx)
 		}
 	}

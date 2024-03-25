@@ -16,9 +16,7 @@ Here is what is going to happen:
 4. The jobs are submit on the MiniCluster, and the matrix is emptied.
 5. We proceed to monitor, scaling when conditions are met, downsizing when jobs are finishing, and terminating after that.
 
-Note that I've implemented up to 4, and just need to act on the metadata returned from the active queue (the count of jobs) as compared to the current MiniCluster size.
-If/when we hit a scaling or termination condition, we will do that, and then this algorithm (first draft) will be mostly done. If you are doing an example with scaling
-up and down, it's recommend to use actually different machines, e.g.,:
+If you are doing an example with scaling up and down, it's recommend to use actually different machines, e.g.,:
 
 ```bash
 GOOGLE_PROJECT=myproject

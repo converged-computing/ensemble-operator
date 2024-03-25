@@ -95,11 +95,6 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		return r.initJobsMatrix(ctx, &ensemble)
 	}
 
-	// Do we need to init the size lookup (where we keep current sizes of all members)
-	//if len(ensemble.Status.Sizes) == 0 {
-	//	return r.initSizesLookup(ctx, &ensemble)
-	//}
-
 	// Ensure we have the MiniCluster (get or create!)
 	// We only have MiniCluster now, but this design can be extended to others
 	for i, member := range ensemble.Spec.Members {
@@ -133,11 +128,8 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			if err != nil {
 				return result, err
 			}
-
 		}
 	}
-	// By the time we get here we have a Job + pods + config maps!
-	// What else do we want to do?
 	fmt.Println("      Ensemble is Ready!")
 
 	// If we've run updates across them, should requeue per preference of ensemble check frequency
