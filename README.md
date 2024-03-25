@@ -2,7 +2,7 @@
 
 This operator will deploy ensembles of HPC applications, first with just Flux Framework, but eventually to include other CRDs. You can select an algorithm to use across your ensemble, or within a specific member.
 
-![docs/img/design.png](docs/img/design.png)
+![docs/getting_started/img/design.png](docs/getting_started/img/design.png)
 
 See [docs](docs) for the user guide, description of the [design](docs/design.md) above, and [algorithms](https://github.com/converged-computing/ensemble-operator/blob/main/docs/algorithms.md#algorithms) for our planned work in that space. We currently have the GRPC service endpoint and client (in the operator) working, and a regular check for the flux queue status, and just need to implement algorithms now that make sense. Note that due to the active role in the lifecycle of an ensemble member, this operator is intended to be running (relatively speaking) a smaller number of jobs, and having most of the work being done within the member.
 
