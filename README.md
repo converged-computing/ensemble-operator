@@ -9,6 +9,7 @@ See [docs](docs) for the user guide, description of the [design](docs/design.md)
 ## TODO
 
  - make pretty docs
+ - we need a "cooldown" strategy for scaling. With a CRD update, reconcile happens immediately, and the queue is likely to report it still needs scaling.
  - think about an experiment we could do, or should add other algorithms first?
  - Think about idea of shared jobs matrix that can go between members (advanced)
 

@@ -92,6 +92,8 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	if newSize <= mc.Spec.MaxSize {
 		fmt.Printf("        Updating size from %d to %d\n", size, newSize)
 		mc.Spec.Size = newSize
+
+		// TODO: this will trigger reconcile. Can we set the time?
 		err = r.Update(ctx, mc)
 		if err != nil {
 			return ctrl.Result{}, err

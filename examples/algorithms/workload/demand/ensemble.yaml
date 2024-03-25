@@ -2,11 +2,11 @@ apiVersion: ensemble.flux-framework.org/v1alpha1
 kind: Ensemble
 metadata:
   name: workload-demand
-spec:
+spec:  
   members:
   - sidecar:
       pullAlways: true
-      image: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9-test
+      image: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
 
     # Algorithm and options:
     # terminateChecks says to terminate after 2 subsequent inactive status checks

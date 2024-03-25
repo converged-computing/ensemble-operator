@@ -22,11 +22,13 @@ var (
 	defaultTerminateChecks = 10
 	defaultScaleChecks     = 5
 
+	scaleDownStrategyExcess    = "excess"
 	scaleUpStrategyNextJob     = "nextJob"
 	scaleUpStrategySmallestJob = "smallestJob"
 	scaleUpStrategyLargestJob  = "largestJob"
 	scaleUpStrategyRandomJob   = "randomJob"
 	defaultScaleUpStrategy     = scaleUpStrategyNextJob
+	defaultScaleDownStrategy   = scaleDownStrategyExcess
 )
 
 // Workload demand algorithm takes two options

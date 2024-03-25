@@ -1,7 +1,14 @@
 # Workload Demand
 
 You can read about the workload demand algorithm [here](https://github.com/converged-computing/ensemble-operator/blob/main/docs/algorithms.md#workoad-demand-of-consistent-sizes).
-For this example, we assume you have a cluster running (e.g., with kind) and have installed the Flux Operator and Ensemble Operator. Here is what is going to happen:
+For this example, we assume you have a cluster running (ideally a real cluster for scaling) and have installed the Flux Operator and Ensemble Operator:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/flux-framework/flux-operator/main/examples/dist/flux-operator.yaml
+kubectl apply -f examples/dist/ensemble-operator.yaml
+```
+
+Here is what is going to happen:
 
 1. We define our jobs matrix in the [ensemble.yaml](ensemble.yaml). The jobs matrix is consistent across algorithms.
 2. For any algorithm, we first get a cluster status `StatusRequest`. We don't use it here aside from establishing communication. In the future if we return more metadata about the cluster it can be used to inform decision making.
@@ -10,7 +17,21 @@ For this example, we assume you have a cluster running (e.g., with kind) and hav
 5. We proceed to monitor, scaling when conditions are met, downsizing when jobs are finishing, and terminating after that.
 
 Note that I've implemented up to 4, and just need to act on the metadata returned from the active queue (the count of jobs) as compared to the current MiniCluster size.
-If/when we hit a scaling or termination condition, we will do that, and then this algorithm (first draft) will be mostly done.
+If/when we hit a scaling or termination condition, we will do that, and then this algorithm (first draft) will be mostly done. If you are doing an example with scaling
+up and down, it's recommend to use actually different machines, e.g.,:
+
+```bash
+GOOGLE_PROJECT=myproject
+gcloud container clusters create test-cluster \
+    --threads-per-core=1 \
+    --placement-type=COMPACT \
+    --num-nodes=6 \
+    --region=us-central1-a \
+    --project=${GOOGLE_PROJECT} \
+    --machine-type=c2d-standard-8
+```
+
+Otherwise just be careful about your problem size and task selection given your machine!
 
 ## Usage
 
@@ -87,7 +108,7 @@ kubectl logs -n ensemble-operator-system ensemble-operator-controller-manager-5f
 Member minicluster has active jobs or has not met threshold for for termination
 ```
 
-What you'll see from the operator is we are doing a termination check based on the number of subsequent inactive statuses. We will want to see a threshold reached (a small one here, just 2) before the cluster
+What you'll see from the operator is we are doing scale up and down and termination checks based on the number of subsequent inactive statuses. We will want to see a threshold reached (a small one here, just 2) before the cluster
 is terminated.  As long as something is in states:
 
 - run
@@ -97,7 +118,7 @@ is terminated.  As long as something is in states:
 - priority
 - sched
 
-It is considered active, and the inactive count will not increment. When jobs are done (and we determine inactive status) you'll see this happen in the operator:
+It is considered active, and the inactive count will not increment. When we hit conditions for scaling, you'll see the MiniCluster get larger, and when jobs are done (and we determine inactive status) you'll see this happen in the operator:
 
 ```console
 Member minicluster is marked for termination
@@ -117,13 +138,5 @@ Action terminate
 Payload 
 ```
 
-And will exit cleanly (pods will be terminated and go away).
-Note that by default, we randomize the submission of the original jobs, but only by the group (this can be tweaked) and we cleanup after 10 subsequent inactive queue checks. 
-The [ensemble.yaml](ensemble.yaml) modifies that to 2 to make it faster. These
-options are customizable with the algorithm. Finally, the scale up/down isn't implemented yet - that's the final step.
-
-## TODO
-
-- Now that we are submitting jobs on start, we need to react to the other decision, scaling the cluster up.
-- We also need to then set the terminate action conditions, define the action, and successfully terminate the ensemble member (minicluster)
-- after this is done, this first algorithm should be mostly done.
+And will exit cleanly (pods will be terminated and go away). Note that by default, we randomize the submission of the original jobs. The [ensemble.yaml](ensemble.yaml) modifies that to 2 to make it faster. These
+options are customizable with the algorithm. 

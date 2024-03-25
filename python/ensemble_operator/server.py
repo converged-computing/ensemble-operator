@@ -102,6 +102,23 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         # If we get here, the current waiting is < previous waiting, so we reset
         return self.increment_period("waiting_periods", 0, True)
 
+    def count_free_nodes_increasing_periods(self, nodes):
+        """
+        Given nodes, count number of free nodes, and increasing periods.
+        """
+        global cache
+        current_free = nodes.get("node_free_count")
+        previous_free = cache.get("free_nodes")
+
+        # If we haven't set this before, or we have more free nodes
+        # add a count of 1 to the period
+        if previous_free is None or (current_free > previous_free):
+            return self.increment_period("free_nodes", 1, False)
+
+        # This means current free is less than the previous free
+        # so the nodes are being used (and we reset)
+        return self.increment_period("free_nodes", 0, True)
+
     def increment_period(self, key, increment, reset):
         """
         Given a counter in in the cache, increment it or reset
@@ -157,6 +174,9 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
 
         # This needs to be updated after so the cache has the previous waiting for the call above
         payload["counts"]["waiting"] = waiting_jobs
+
+        # Finally, keep track of number of periods that we have free nodes increasing
+        payload["counts"]["free_nodes"] = self.count_free_nodes_increasing_periods(payload["nodes"])
 
         print(json.dumps(payload))
         return ensemble_service_pb2.Response(

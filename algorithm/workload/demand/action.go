@@ -74,9 +74,28 @@ func (e WorkloadDemand) scaleMember(
 		} else {
 			fmt.Printf("        Waiting jobs count %d does not warrant scaling up\n", len(status.Waiting))
 		}
+
+		// This is the scaling strategy to use for going down
+		// We currently just have one so this isnt' necessary, but might as well prepare for it to be used
+		scaleDownStrategy := member.GetStringOption("scaleDownStrategy", defaultScaleDownStrategy)
+
+		// Scaling down tested after scaling up, and we require +2 periods
+		scaleChecks += 2
+
+		// For this we care about the nodes_free periods
+		nodesFreePeriods, ok := status.Counts["free_nodes"]
+		if ok && nodesFreePeriods >= int32(scaleChecks) {
+			if scaleDownStrategy == scaleDownStrategyExcess {
+				nodesFree, ok := status.Nodes["node_free_count"]
+
+				// Scale down by the number of nodes free
+				if ok {
+					fmt.Printf("        Scaling down by: %d\n", nodesFree)
+					return nodesFree * -1, nil
+				}
+			}
+		}
 	}
-	// TODO implement scale down
-	//	"smallestJob" "nextJob" "randomJob"
 	return 0, nil
 }
 
@@ -128,7 +147,7 @@ func (e WorkloadDemand) terminateMember(
 		}
 
 		// Here is where we terminate
-		fmt.Printf("Member %s has active jobs or has not met threshold for for termination\n", member.Type())
+		fmt.Printf("Member %s has active jobs or has not met threshold for termination\n", member.Type())
 		return false, false, nil
 	}
 

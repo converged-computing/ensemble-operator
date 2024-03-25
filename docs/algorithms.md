@@ -87,10 +87,11 @@ Note that all options must be string or integer (no boolean). So for a boolean p
 | randomize |   randomize based on _group_ of job |"yes" | "yes" "no"  (boolean) |
 | terminateChecks | number of subsequent inactive checks to receive to determine termination status | 10 | integer |
 | disableTermination | do not terminate at the end | "no" | "yes" "no"  (boolean) |
+| scaleDownStrategy | Strategy to choose number of nodes to scale down | "excessNodes" | "excessNodes" |
 | scaleUpStrategy | Strategy to choose number of nodes to scale up | "nextJob" | "smallestJob" "nextJob" "randomJob" |
 | scaleChecks | number of subsequent checks with queue at current or larger size to warrant scaling up or down | 5 | integer |
 
-For `ScaleUpStrategy` we currently are scoping the chose to one job (although that can change) as a more conservative approach.
+For `scaleUpStrategy` we currently are scoping the chose to one job (although that can change) as a more conservative approach.
 
 - **smallestJob**: choose the smallest size to scale up by, up to the cluster max size.
 - **largestJob**: choose the largest job to scale up by, up to the cluster max size (in practice this does not guarantee to run that sized job).
@@ -101,6 +102,11 @@ Note that since this algorithm is reactive, we choose the default of "nextJob" f
 controlling submission, this means if you choose another strategy, it may not necessarily lead to that job size being
 chosen (e.g., a random job is size 10 but you have 2x size 5 in the queue before it, they will fill it up first).
 because it's less data to send "over the wire" so to speak! This algorithm will use the identifier:
+
+For `scaleDownStrategy` I just implemented one so far - given every number of scale checks N, scale down by the excess nodes if
+the number of free nodes remains constant or increases over some number of checks. This pattern would indicate that resources are
+freeing up and they are not being filled. Note that we set the number of scale down checks to always be 2 more than scale up checks,
+that way there is at least one cycle between the two.
 
 - workload-demand
 
