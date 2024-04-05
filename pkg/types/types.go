@@ -37,6 +37,9 @@ type MiniClusterStatus struct {
 
 	// Counts of things (e.g., number of checks we've done)
 	Counts map[string]int32 `json:"counts"`
+
+	// Random metrics to return
+	Metrics map[string]string `json:"metrics"`
 }
 
 // GetLargestWaitingSize gets the largest size waiting

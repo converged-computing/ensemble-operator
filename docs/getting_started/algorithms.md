@@ -68,9 +68,9 @@ Algorithms are organized by the following:
  - 🕹️ **control** allows the operator to give higher level cluster feedback to the model or queue to better inform a choice, or simply takes this state into account (e.g., think fair-share across ensemble members or a cluster)
 
 
-#### Workoad Demand (of consistent sizes) ✅️
+#### Workload Demand
 
-> 🟦️ This algorithm assumes a first come, first serve submission (the queue is populated by the batch job) and the cluster resources are adapted to support the needs of the queue (not implemented yet).
+> 🟦️ This algorithm assumes a first come, first serve submission (the queue is populated by the batch job) and the cluster resources are adapted to support the needs of the queue
 
 This rule should be the default because it's kind of what you'd want for an autoscaling approach - you want the cluster resources to match the needs of the queue, where the needs of the queue are reflecting in the jobs in it, and can expand up to some maximum size and reduce down to some minimum size (1). This is first come, first serve approach, meaning that we assume the user has submit a ton of jobs to the queue in batch, and whichever are submit first are going to be run first.
 
@@ -78,13 +78,15 @@ This rule should be the default because it's kind of what you'd want for an auto
 - **scale down rule**: check the number of jobs running, waiting in the queue, and max size in the cluster. If the number of jobs waiting hits zero and remains at zero over N checks, decrease the size of the cluster down to the exact number needed that are running.
 - **terminate rule**: check the number of jobs running and waiting. If this value remains 0 over N checks, the work is done and clean up. If there is a parameter set to keep the minicluster running at minimum operation, scale down to 1 node.
 
+Note that you can request randomization of the jobs, meaning they will be randomized before submission. This approach might be tried with a cluster autoscaler.
+
 ##### Options
 
 Note that all options must be string or integer (no boolean). So for a boolean put "yes" or "no" instead.
 
 | Name | Description | Default | Choices or Type |
 | -----|---------|-----------|---------|
-| randomize |   randomize based on _group_ of job |"yes" | "yes" "no"  (boolean) |
+| order | Determine the order of jobs | "random" | "random" unset (as provided) "ascending", "descending" |
 | terminateChecks | number of subsequent inactive checks to receive to determine termination status | 10 | integer |
 | disableTermination | do not terminate at the end | "no" | "yes" "no"  (boolean) |
 | scaleDownStrategy | Strategy to choose number of nodes to scale down | "excessNodes" | "excessNodes" |
@@ -92,6 +94,8 @@ Note that all options must be string or integer (no boolean). So for a boolean p
 | scaleChecks | number of subsequent checks with queue at current or larger size to warrant scaling up or down | 5 | integer |
 
 For `scaleUpStrategy` we currently are scoping the chose to one job (although that can change) as a more conservative approach.
+The order is somewhat redundant to the scale up strategy, but remember that it's chosen at the onset of submit. If we add other
+algorithms to run on the server, this is subject to change as the jobs run.
 
 - **smallestJob**: choose the smallest size to scale up by, up to the cluster max size.
 - **largestJob**: choose the largest job to scale up by, up to the cluster max size (in practice this does not guarantee to run that sized job).
@@ -109,6 +113,14 @@ freeing up and they are not being filled. Note that we set the number of scale d
 that way there is at least one cycle between the two.
 
 - workload-demand
+
+Finally, I'm thinking of adding some kind of choice of model to build at the level of the queue to determine how to order. For example, here is how to change job urgency:
+
+```python
+rpc = handle.rpc("job-manager.urgency", {"urgency": 22, "id": flux.job.JobID("ƒ72FT28As")}, 0)
+rpc.get()
+```
+
 
 #### Random selection 🟠️
 

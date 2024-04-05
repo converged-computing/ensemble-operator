@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import json
 import logging
 import sys
@@ -9,6 +10,7 @@ import grpc
 import ensemble_operator.algorithm as algorithms
 import ensemble_operator.defaults as defaults
 import ensemble_operator.members as members
+import ensemble_operator.metrics as m
 from ensemble_operator.protos import ensemble_service_pb2
 from ensemble_operator.protos import ensemble_service_pb2_grpc as api
 
@@ -16,6 +18,7 @@ from ensemble_operator.protos import ensemble_service_pb2_grpc as api
 # We are anticipating storing some state here with the ensemble mamber since the
 # operator should not be doing that.
 cache = {}
+metrics = None
 
 
 def get_parser():
@@ -150,6 +153,7 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         Request information about queues and jobs.
         """
         global cache
+        global metrics
 
         print(context)
         print(f"Member type: {request.member}")
@@ -191,7 +195,10 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         # Finally, keep track of number of periods that we have free nodes increasing
         payload["counts"]["free_nodes"] = self.count_free_nodes_increasing_periods(payload["nodes"])
 
+        # Always update the last timestamp when we do a status
+        payload["metrics"] = metrics.to_dict()
         print(json.dumps(payload))
+
         return ensemble_service_pb2.Response(
             payload=json.dumps(payload),
             status=ensemble_service_pb2.Response.ResultType.SUCCESS,
@@ -232,10 +239,14 @@ def serve(port, workers):
     """
     serve the ensemble endpoint for the MiniCluster
     """
+    global metrics
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=workers))
     api.add_EnsembleOperatorServicer_to_server(EnsembleEndpoint(), server)
     server.add_insecure_port(f"[::]:{port}")
     print(f"🥞️ Starting ensemble endpoint at :{port}")
+
+    # Kick off metrics collections
+    metrics = m.Metrics()
     server.start()
     server.wait_for_termination()
 

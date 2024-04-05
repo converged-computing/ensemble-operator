@@ -74,7 +74,7 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	ctx context.Context,
 	ensemble *api.Ensemble,
 	scale int32,
-	name, idx string,
+	name string,
 ) (ctrl.Result, error) {
 
 	mc, err := r.getExistingMiniCluster(ctx, name, ensemble)

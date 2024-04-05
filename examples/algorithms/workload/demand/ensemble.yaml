@@ -4,17 +4,23 @@ metadata:
   name: workload-demand
 spec:  
   members:
+
+    # This is how you change the sidcar image, if needed. This is the one
+    # that I push and use for development. Pull always ensures we get latest
   - sidecar:
       pullAlways: true
       image: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
 
     # Algorithm and options:
+    # This is the algorithm run by the operator. The options are passed to
+    # the running queue to further alter the outcome.
     # terminateChecks says to terminate after 2 subsequent inactive status checks
     algorithm:
       name: workload-demand
       options:
         terminateChecks: 2
         scaleUpChecks: 4
+        order: "random"
 
     # I made these the size of the cluster so we trigger scaling at least once
     jobs:

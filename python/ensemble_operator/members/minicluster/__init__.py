@@ -75,10 +75,36 @@ class MiniClusterMember(MemberBase):
         # Allow this to fail - it will raise a value error that will propogate back to the operator
         import flux.job
 
-        # do we want to randomize?
-        randomize = payload.get("randomize", True)
-
         # First prepare the entire set
+        jobs = self.extract_payload_jobs(payload)
+
+        # Now submit, likely randomized
+        for job in jobs:
+            print(job)
+            jobspec = flux.job.JobspecV1.from_command(
+                command=job["command"], num_nodes=job["nodes"], num_tasks=job["tasks"]
+            )
+            workdir = job["workdir"]
+
+            # Do we have a working directory?
+            if workdir:
+                jobspec.cwd = workdir
+
+            # Use direction or default to 0, unlimited
+            jobspec.duration = job["duration"]
+
+            # TODO do we want to customize environment somehow?
+            jobid = flux.job.submit(self.handle, jobspec)
+            print(f"  ⭐️ Submit job {job['command']}: {jobid}")
+
+    def extract_payload_jobs(self, payload):
+        """
+        Given the payload, extract and order jobs
+        """
+        # do we want to randomize?
+        # This happens here (and not in the operator) for efficient transfer
+        order = payload.get("order", "random")
+
         jobs = []
         for job in payload.get("jobs") or []:
             tasks = job.get("tasks") or 1
@@ -100,24 +126,14 @@ class MiniClusterMember(MemberBase):
                 )
 
         # Do we want to randomize?
-        if randomize:
+        if order == "random":
+            print("Randomizing order of jobs")
             random.shuffle(jobs)
+        elif order == "ascending":
+            print("Sorting jobs in ascending order by size")
+            jobs = sorted(jobs, key=lambda d: d["nodes"])
+        elif order == "descending":
+            print("Sorting jobs in descending order by size")
+            jobs = sorted(jobs, key=lambda d: d["nodes"], reverse=True)
 
-        # Now submit, likely randomized
-        for job in jobs:
-            print(job)
-            jobspec = flux.job.JobspecV1.from_command(
-                command=job["command"], num_nodes=job["nodes"], num_tasks=job["tasks"]
-            )
-            workdir = job["workdir"]
-
-            # Do we have a working directory?
-            if workdir:
-                jobspec.cwd = workdir
-
-            # Use direction or default to 0, unlimited
-            jobspec.duration = job["duration"]
-
-            # TODO do we want to customize environment somehow?
-            jobid = flux.job.submit(self.handle, jobspec)
-            print(f"  ⭐️ Submit job {job['command']}: {jobid}")
+        return jobs

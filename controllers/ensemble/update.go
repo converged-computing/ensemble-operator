@@ -123,7 +123,7 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 			}
 			response, _ := c.RequestAction(ctx, &in)
 			fmt.Println(response.Status)
-			return r.updateMiniClusterSize(ctx, ensemble, decision.Scale, name, idx)
+			return r.updateMiniClusterSize(ctx, ensemble, decision.Scale, name)
 		}
 	}
 

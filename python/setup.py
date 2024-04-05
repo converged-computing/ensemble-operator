@@ -45,5 +45,7 @@ if __name__ == "__main__":
             "Operating System :: Unix",
             "Programming Language :: Python :: 3.7",
         ],
-        entry_points={"console_scripts": ["ensemble-api=ensemble_operator.server:main"]},
+        entry_points={
+            "console_scripts": ["ensemble-api=ensemble_operator.server:main"]
+        },
     )
