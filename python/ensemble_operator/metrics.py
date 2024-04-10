@@ -30,5 +30,5 @@ class Metrics:
         return {
             "start_time": str(self.start_time),
             "last_updated": str(self.last_updated),
-            "elapsed": self.elapsed,
+            "elapsed": str(self.elapsed),
         }
