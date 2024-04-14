@@ -5,8 +5,8 @@ import api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 // A SubmitRequest includes jobs and counts to submit.
 // It will be serialized into the json payload to the gRPC sidecar
 type SubmitRequest struct {
-	Jobs      []Job `json:"jobs,omitempty"`
-	Randomize bool  `json:"randomize"`
+	Jobs  []Job  `json:"jobs,omitempty"`
+	Order string `json:"order"`
 }
 
 // Flatten a job out from the matrix structure

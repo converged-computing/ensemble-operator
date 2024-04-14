@@ -3,7 +3,6 @@ package demand
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	"github.com/converged-computing/ensemble-operator/pkg/algorithm"
@@ -18,7 +17,7 @@ const (
 // Member types that the algorithm supports
 var (
 	AlgorithmSupports      = set.New("minicluster")
-	defaultRandomizeOption = true
+	defaultOrderOption     = "random"
 	defaultTerminateChecks = 10
 	defaultScaleChecks     = 5
 
@@ -77,18 +76,9 @@ func (e WorkloadDemand) getUpdatedJobs(
 		}
 	}
 
-	// Do we want to randomize by group or job?
-	doRandomize := member.StringToBooleanOption("randomize", defaultRandomizeOption)
-	req.Randomize = doRandomize
-
-	// Randomly shuffle the job groups - random shufflig of ALL jobs happens at the queue level
-	// For efficient transfer of matrix
-	if doRandomize {
-		if len(updatedJobs) > 0 {
-			rand.Shuffle(len(updatedJobs), func(i, j int) { updatedJobs[i], updatedJobs[j] = updatedJobs[j], updatedJobs[i] })
-		}
-	}
-
+	// Do we want to change the order?
+	// Note that this happens on the level of the queue, not here
+	req.Order = member.GetStringOption("order", defaultOrderOption)
 	return &req, updatedJobs, updated
 }
 
