@@ -234,7 +234,7 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
                 response.status = ensemble_service_pb2.Response.ResultType.ERROR
 
         # This can give a final dump / view of job info
-        elif request.action == "info":
+        elif request.action == "jobinfo":
             try:
                 infos = member.job_info()
                 if infos:

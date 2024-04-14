@@ -14,13 +14,5 @@ that nodes hung around ~10 minutes after the queue was essentially empty, so I t
 aggressive) might be better. We are going to (as an extra bonus) keep track of the time the cluster takes to go back to the smallest
 size when no work is running. I didn't see this was a parameter I could update.
 
-## 1. Create the Cluster
+This experiment has been moved to the [converged-computing/ensemble-experiments](https://github.com/converged-computing/ensemble-experiments) repository.
 
-These experiments are all run and controlled with python.
-
-```bash
-python run_experiments.py --help
-python run_experiments.py --data-dir ./data/run0
-```
-
-TODO: do an experiment that looks at how the scale periods influence result!

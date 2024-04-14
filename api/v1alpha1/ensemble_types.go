@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -332,8 +333,15 @@ func (e *Ensemble) Validate() error {
 				return fmt.Errorf("ensemble desired size must be between min and max size")
 			}
 
+			// If the sidecar has a digest it's OK, but remove for check
+			sidecar := member.Sidecar.Image
+			if strings.Contains(sidecar, "@") {
+				parts := strings.Split(sidecar, "@")
+				sidecar = parts[0]
+			}
+
 			// Base container must be in valid set
-			if !bases.Has(member.Sidecar.Image) {
+			if !bases.Has(sidecar) {
 				return fmt.Errorf("base image must be rocky linux or ubuntu: %s", bases)
 			}
 			count += 1
