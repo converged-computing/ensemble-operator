@@ -21,6 +21,15 @@ class MiniClusterMember(MemberBase):
 
         self.handle = flux.Flux()
 
+    def job_info(self):
+        """
+        Return job info (more detailed than status)
+        """
+        import flux.job
+
+        listing = flux.job.job_list(self.handle)
+        return listing.get()
+
     def status(self):
         """
         Ask the flux queue (metrics) for a status

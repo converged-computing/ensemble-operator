@@ -21,7 +21,8 @@ var (
 	JobsMatrixUpdateAction = "updateJobsMatrix"
 
 	// Queue actions
-	SubmitAction = "submit"
+	SubmitAction  = "submit"
+	JobInfoAction = "jobinfo"
 )
 
 // An algorithm interface determines behavior for scaling and termination.

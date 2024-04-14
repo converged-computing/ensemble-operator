@@ -214,6 +214,7 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
 
         # Assume first successful response
         status = ensemble_service_pb2.Response.ResultType.SUCCESS
+        response = ensemble_service_pb2.Response()
 
         # The member primarily is directed to take the action
         member = members.get_member(request.member)
@@ -222,17 +223,28 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
                 member.submit(request.payload)
             except Exception as e:
                 print(e)
-                status = ensemble_service_pb2.Response.ResultType.ERROR
+                response.status = ensemble_service_pb2.Response.ResultType.ERROR
 
         # Reset a counter, typically after an update event
-        if request.action == "resetCounter":
+        elif request.action == "resetCounter":
             try:
                 self.reset_counter(request.payload)
             except Exception as e:
                 print(e)
-                status = ensemble_service_pb2.Response.ResultType.ERROR
+                response.status = ensemble_service_pb2.Response.ResultType.ERROR
 
-        return ensemble_service_pb2.Response(status=status)
+        # This can give a final dump / view of job info
+        elif request.action == "info":
+            try:
+                infos = member.job_info()
+                if infos:
+                    print(json.dumps(infos))
+                    response.payload = infos
+            except Exception as e:
+                print(e)
+                response.status = ensemble_service_pb2.Response.ResultType.ERROR
+
+        return response
 
 
 def serve(port, workers):

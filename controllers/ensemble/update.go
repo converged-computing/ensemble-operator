@@ -101,6 +101,25 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	// Are we terminating? Note that the next check for updated
 	// cannot happen at the same time as a termination request
 	if decision.Action == algorithm.TerminateAction {
+
+		// Ask for one more listing of jobs!
+		in := pb.ActionRequest{
+			Member:    member.Type(),
+			Algorithm: algo.Name(),
+			Payload:   decision.Payload,
+			Action:    algorithm.JobInfoAction,
+		}
+		response, err := c.RequestAction(ctx, &in)
+		fmt.Println(response.Status)
+		if response.Payload != "" {
+			fmt.Println(response.Payload)
+		}
+		if err != nil {
+			fmt.Printf("      Error with action request %s\n", err)
+			return ctrl.Result{}, err
+		}
+
+		// After we print jobs, delete the ensemble
 		err = r.Delete(ctx, ensemble)
 		if err != nil {
 			return ctrl.Result{}, err
