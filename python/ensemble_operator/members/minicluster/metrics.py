@@ -48,9 +48,8 @@ def get_next_jobs():
 
     count = 0
     for item in listing.get("jobs", []):
-
         # We only want jobs that aren't running or inactive
-        state = flux.job.info.statetostr(item['state'])
+        state = flux.job.info.statetostr(item["state"])
 
         # Assume these might need resources.
         # If the cluster had enough nodes and they were free,
@@ -66,9 +65,9 @@ def get_next_jobs():
 
     # Sort by submit time - the ones we submit first should
     # go back to the operator first
-    next_jobs = sorted(next_jobs, key=lambda d: d['t_submit'])
+    next_jobs = sorted(next_jobs, key=lambda d: d["t_submit"])
     return [j["nnodes"] for j in next_jobs]
- 
+
 
 def get_waiting_sizes():
     """
