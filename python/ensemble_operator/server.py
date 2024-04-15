@@ -238,8 +238,8 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
             try:
                 infos = member.job_info()
                 if infos:
-                    print(json.dumps(infos))
-                    response.payload = infos
+                    print(json.dumps(infos, indent=4))
+                    response.payload = json.dumps(infos)
             except Exception as e:
                 print(e)
                 response.status = ensemble_service_pb2.Response.ResultType.ERROR
