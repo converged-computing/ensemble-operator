@@ -40,22 +40,35 @@ def get_node_metrics():
 
 def get_next_jobs():
     """
-    Get the next 10 jobs in the queue
+    Get the next 10 jobs in the queue.
     """
     jobs = flux.job.job_list(handle)
     listing = jobs.get()
     next_jobs = []
 
-    for i, item in enumerate(listing.get("jobs", [])):
-        nodes = item["nnodes"]
-        next_jobs.append(nodes)
+    count = 0
+    for item in listing.get("jobs", []):
+
+        # We only want jobs that aren't running or inactive
+        state = flux.job.info.statetostr(item['state'])
+
+        # Assume these might need resources.
+        # If the cluster had enough nodes and they were free,
+        # it would be running, so we don't include RUN
+        if state not in ["DEPEND", "SCHED"]:
+            continue
+        next_jobs.append(item)
 
         # Arbitrary cutoff
-        if i == 10:
+        if count == 10:
             break
+        count += 1
 
-    return next_jobs
-
+    # Sort by submit time - the ones we submit first should
+    # go back to the operator first
+    next_jobs = sorted(next_jobs, key=lambda d: d['t_submit'])
+    return [j["nnodes"] for j in next_jobs]
+ 
 
 def get_waiting_sizes():
     """
