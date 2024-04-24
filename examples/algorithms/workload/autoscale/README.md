@@ -18,7 +18,7 @@ gcloud container clusters create test-cluster \
     --region=us-central1-a \
     --num-nodes 1 \
     --total-min-nodes 1 \
-    --total-max-nodes 40 \
+    --total-max-nodes 18 \
     --project=${GOOGLE_PROJECT} \
     --machine-type=c2d-standard-8
 ```
