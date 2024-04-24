@@ -69,7 +69,7 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	decision, err := algo.MakeDecision(ensemble, member, response.Payload, jobs)
 	if err != nil || response.Status == pb.Response_ERROR {
 		fmt.Printf("      Decision error %s\n", err)
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
 	}
 
 	// If we are requesting an action to the queue (sidecar gRPC) do it
@@ -83,9 +83,10 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 			Action:    algorithm.SubmitAction,
 		}
 		response, err := c.RequestAction(ctx, &in)
+		// We should still continue here, could be timeout
 		if err != nil {
 			fmt.Printf("      Error with action request %s\n", err)
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
 		}
 		fmt.Println(response.Status)
 
@@ -106,7 +107,7 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 		err = r.showJobInfo(ctx, c, member, algo, decision)
 		if err != nil {
 			fmt.Printf("      Error with action request %s\n", err)
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
 		}
 
 		// After we print jobs, delete the ensemble
