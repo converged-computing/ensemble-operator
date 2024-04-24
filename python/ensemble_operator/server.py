@@ -196,6 +196,7 @@ class EnsembleEndpoint(api.EnsembleOperatorServicer):
         payload["counts"]["free_nodes"] = self.count_free_nodes_increasing_periods(payload["nodes"])
 
         # Always update the last timestamp when we do a status
+        metrics.tick()
         payload["metrics"] = metrics.to_dict()
         print(json.dumps(payload))
 

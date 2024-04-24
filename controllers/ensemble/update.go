@@ -83,11 +83,12 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 			Action:    algorithm.SubmitAction,
 		}
 		response, err := c.RequestAction(ctx, &in)
-		fmt.Println(response.Status)
 		if err != nil {
 			fmt.Printf("      Error with action request %s\n", err)
 			return ctrl.Result{}, err
 		}
+		fmt.Println(response.Status)
+
 		// Since we requeue anyway, we don't check error. But probably should.
 		return r.updateJobsMatrix(ctx, ensemble, decision.Jobs, i)
 	}
