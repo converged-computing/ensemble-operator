@@ -42,9 +42,8 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	//+kubebuilder:scaffold:imports
-
 	// Init algorithms
-	_ "github.com/converged-computing/ensemble-operator/algorithm/workload/demand"
+	//	_ "github.com/converged-computing/ensemble-operator/algorithm/workload/demand"
 )
 
 var (

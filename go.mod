@@ -1,6 +1,8 @@
 module github.com/converged-computing/ensemble-operator
 
-go 1.20
+go 1.21
+
+toolchain go1.22.6
 
 require (
 	github.com/flux-framework/flux-operator v0.0.0-20240318010001-e28febf62d7b

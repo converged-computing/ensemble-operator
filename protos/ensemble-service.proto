@@ -1,20 +1,28 @@
 syntax = "proto3";
 
 package convergedcomputing.org.grpc.v1;
-option go_package = "github.com/converged-computing/ensemble-operator/protos";
+option go_package = "github.com/converged-computing/ensemble-python/protos";
 
 service EnsembleOperator {
+    rpc RequestUpdate(UpdateRequest) returns (Response);
     rpc RequestStatus(StatusRequest) returns (Response);
     rpc RequestAction(ActionRequest) returns (Response);
 }
 
- // StatusRequest asks to see the status of the queue and jobs
- // TODO add auth here...
+// StatusRequest asks to see the status of the queue and jobs
 message StatusRequest {
 
     // This is the ensemble member type (e.g., minicluster)
     string member = 1;
     string algorithm = 2;
+}
+
+// UpdateRequest sends over initial data (or updates) to the ensemble member
+message UpdateRequest {
+    string member = 1;
+    string algorithm = 2;
+    string options = 3;
+    string payload = 4;
 }
 
 // ActionRequest requests an action
@@ -25,8 +33,7 @@ message ActionRequest {
     string payload = 4;
 }
 
-
- message Response {
+message Response {
 
     // Registration statuses
     enum ResultType {

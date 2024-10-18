@@ -25,6 +25,7 @@ var _ Client = (*EnsembleClient)(nil)
 type Client interface {
 
 	// Ensemble interactions
+	RequestUpdate(ctx context.Context, in *pb.UpdateRequest, opts ...grpc.CallOption) (*pb.Response, error)
 	RequestStatus(ctx context.Context, in *pb.StatusRequest, opts ...grpc.CallOption) (*pb.Response, error)
 	RequestAction(ctx context.Context, in *pb.ActionRequest, opts ...grpc.CallOption) (*pb.Response, error)
 }
@@ -85,6 +86,24 @@ func (c *EnsembleClient) RequestStatus(
 	defer cancel()
 
 	response, err := c.service.RequestStatus(ctx, in)
+	return response, err
+}
+
+// UpdateRequest issues a setup or update request
+func (c *EnsembleClient) RequestUpdate(
+	ctx context.Context,
+	in *pb.UpdateRequest,
+	opts ...grpc.CallOption,
+) (*pb.Response, error) {
+
+	response := &pb.Response{}
+	if !c.Connected() {
+		return response, errors.New("client is not connected")
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	response, err := c.service.RequestUpdate(ctx, in)
 	return response, err
 }
 

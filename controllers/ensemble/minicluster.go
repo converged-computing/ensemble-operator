@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
@@ -87,7 +88,7 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	newSize := size + scale
 	if newSize < 1 {
 		fmt.Printf("        Ignoring scaling event, new size %d is < 1\n", newSize)
-		return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
+		return ctrl.Result{}, err
 	}
 	if newSize <= mc.Spec.MaxSize {
 		fmt.Printf("        Updating size from %d to %d\n", size, newSize)
@@ -104,7 +105,7 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	}
 
 	// Check again in the allotted time
-	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
+	return ctrl.Result{}, err
 }
 
 // newMiniCluster creates a new ensemble minicluster
@@ -124,19 +125,25 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// All clusters are interactive because we expect to be submitting jobs
 	spec.Spec.Interactive = true
 
-	// Start command for ensemble grpc service
-	command := fmt.Sprintf(postCommand, member.Sidecar.Port, member.Sidecar.Workers)
+	// Ensure the service name is the ensemble name so the ensemble service
+	// can share it too!
+	spec.Spec.Network.HeadlessName = ensemble.Name
 
-	// Create a new container for the flux metrics API to run, this will communicate with our grpc
-	sidecar := minicluster.MiniClusterContainer{
-		Name:       "api",
-		Image:      member.Sidecar.Image,
-		PullAlways: member.Sidecar.PullAlways,
-		Commands: minicluster.Commands{
-			Post: command,
-		},
+	// Add the config map as a volume to the main container
+	container := spec.Spec.Containers[0]
+	volume := minicluster.ContainerVolume{
+		ConfigMapName: ensemble.Name,
+		Path:          "/ensemble-entrypoint",
+		Items:         map[string]string{ensembleYamlName: ensembleYamlName},
 	}
-	spec.Spec.Containers = append(spec.Spec.Containers, sidecar)
+	container.Volumes["ensemble-yaml"] = volume
+
+	// TODO this needs to know how to interact with the grpc
+	// we probably need to get the headless service name
+	// and provide to the minicluster
+	ensembleYamlPath := filepath.Join(ensembleYamlDirName, ensembleYamlName)
+	container.Command = fmt.Sprintf("ensemble run %s", ensembleYamlPath)
+	spec.Spec.Containers[0] = container
 	fmt.Println(spec.Spec)
 	ctrl.SetControllerReference(ensemble, spec, r.Scheme)
 	return spec

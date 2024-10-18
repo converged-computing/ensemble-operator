@@ -39,6 +39,12 @@ cd ensemble-operator
 kubectl apply -f examples/dist/ensemble-operator.yaml
 ```
 
+or to build and develop:
+
+```bash
+make test-deploy-recreate
+```
+
 Next let's talk about running the CRD, running LAMMPS!
 
 ### 2. Run Example

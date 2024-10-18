@@ -6,7 +6,6 @@ that you can install to your cluster to create and control ensembles of worklaod
 ```{toctree}
 :maxdepth: 2
 user-guide
-algorithms
 design
 custom-resource-definition
 ```

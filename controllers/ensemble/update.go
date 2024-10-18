@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
-	"github.com/converged-computing/ensemble-operator/pkg/algorithm"
 	"github.com/converged-computing/ensemble-operator/pkg/client"
 	pb "github.com/converged-computing/ensemble-operator/protos"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,8 +13,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// ensureEnsemble ensures that the ensemle is created!
-func (r *EnsembleReconciler) updateMiniClusterEnsemble(
+// initMiniCluster Ensemble sends over the initial data
+// and algorithm to run in the sidecar
+func (r *EnsembleReconciler) setupMiniClusterEnsemble(
 	ctx context.Context,
 	name string,
 	ensemble *api.Ensemble,
@@ -32,7 +32,7 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 	}
 
 	// Create a client to the pod (host)
-	host := fmt.Sprintf("%s:%s", ipAddress, member.Sidecar.Port)
+	host := fmt.Sprintf("%s:%s", ipAddress, ensemble.Spec.Sidecar.Port)
 	fmt.Printf("      Host %s\n", host)
 
 	c, err := client.NewClient(host)
@@ -40,8 +40,28 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	// We send over:
+	// 1. the algorithm name and options
+	// 2. The job matrix
+	// And we expect back confirmation of setup
+	in := pb.StatusRequest{
+		Member: member.Type(),
+		//		Algorithm: member.Algorithm.Name,
+		//		Options:   options,
+
+		// This can be extended to other things
+		//		Payload: jobs,
+	}
+
+	response, err := c.RequestStatus(ctx, &in)
+	if err != nil || response.Status == pb.Response_ERROR {
+		fmt.Printf("      Error with setup request %s\n", err)
+		return ctrl.Result{Requeue: true}, err
+	}
+	fmt.Println(response.Status)
+
 	// Get the algorithm - if this fails we stop
-	algo, err := algorithm.Get(member.Algorithm.Name)
+	/*algo, err := algorithm.Get(member.Algorithm.Name)
 	if err != nil {
 		fmt.Printf("      Failed to retrieve algorithm %s\n", err)
 		return ctrl.Result{Requeue: true}, err
@@ -135,36 +155,38 @@ func (r *EnsembleReconciler) updateMiniClusterEnsemble(
 			fmt.Println(response.Status)
 			return r.updateMiniClusterSize(ctx, ensemble, decision.Scale, name)
 		}
-	}
+	}*/
+	// TODO all of the above needs to be decided by the ensemble and sent
+	// back here - how do we do that?
 
-	// This is the last return, this says to check every N seconds
-	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, nil
+	// This is the last return, this says we are done the setup or update
+	return ctrl.Result{}, nil
 }
 
 // getLeaderAddress gets the ipAddress of the lead broker
 // In all cases of error we requeue
-func (r *EnsembleReconciler) showJobInfo(
-	ctx context.Context,
-	c client.Client,
-	member *api.Member,
-	algo algorithm.AlgorithmInterface,
-	decision algorithm.AlgorithmDecision,
-) error {
+//func (r *EnsembleReconciler) showJobInfo(
+//	ctx context.Context,
+//	c client.Client,
+//	member *api.Member,
+//	algo algorithm.AlgorithmInterface,
+//	decision algorithm.AlgorithmDecision,
+//) error {
 
-	// Ask for one more listing of jobs!
-	in := pb.ActionRequest{
-		Member:    member.Type(),
-		Algorithm: algo.Name(),
-		Payload:   decision.Payload,
-		Action:    algorithm.JobInfoAction,
-	}
-	response, err := c.RequestAction(ctx, &in)
-	fmt.Println(response.Status)
-	if response.Payload != "" {
-		fmt.Println(response.Payload)
-	}
-	return err
-}
+// Ask for one more listing of jobs!
+//	in := pb.ActionRequest{
+//		Member:    member.Type(),
+//		Algorithm: algo.Name(),
+//		Payload:   decision.Payload,
+//		Action:    algorithm.JobInfoAction,
+//	}
+//	response, err := c.RequestAction(ctx, &in)
+//	fmt.Println(response.Status)
+//	if response.Payload != "" {
+//		fmt.Println(response.Payload)
+//	}
+//	return err
+//}
 
 // getLeaderAddress gets the ipAddress of the lead broker
 // In all cases of error we requeue

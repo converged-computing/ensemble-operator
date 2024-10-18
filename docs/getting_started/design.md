@@ -1,6 +1,16 @@
 # Design
 
+## Current Design
+
+This current design moves
+
 ![img/design.png](img/design.png)
+
+## Design 1
+
+This was the first design. I found it problematic to put the interaction between the operator and ensemble in a sidecar to the MiniCluster, because it meant I could not easily add another member. I also found the frequency of communication between the ensemble member and operator problematic - there was too much expectation or burden on the operator to receive and respond to requests. Finally, I didn't like that the Python library (that orchestrated the ensemble) was tied specifically to the operator. I wanted the library to work outside of it.
+
+![img/design-1.png](img/design-1.png)
 
 ## 1. Create an Ensemble
 

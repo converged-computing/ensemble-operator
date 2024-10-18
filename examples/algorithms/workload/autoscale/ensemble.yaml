@@ -3,50 +3,17 @@ kind: Ensemble
 metadata:
   name: ensemble
 spec:  
+
+  # This is how you change the sidcar image, if needed. This is the one
+  # that I push and use for development. Pull always ensures we get latest
+  sidecar:
+    pullAlways: true
+    image: ghcr.io/converged-computing/ensemble-python:latest
+
   members:
 
-    # This is how you change the sidcar image, if needed. This is the one
-    # that I push and use for development. Pull always ensures we get latest
-  - sidecar:
-      pullAlways: true
-      image: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
-
-    # Algorithm and options:
-    # This is the algorithm run by the operator. The options are passed to
-    # the running queue to further alter the outcome.
-    # terminateChecks says to terminate after 2 subsequent inactive status checks
-    algorithm:
-      name: workload-demand
-      options:
-        terminateChecks: 2
-        scaleUpChecks: 1
-        order: "random"
-
-    # These are slightly different - flux gets to use the full node capacity
-    # so 4 cores per node, tasks == size * 4
-    jobs:
-      - name: lammps-2
-        command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-        count: 10
-        nodes: 2
-        tasks: 8
-      - name: lammps-4
-        command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-        count: 10
-        nodes: 4
-        tasks: 16
-      - name: lammps-6
-        command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-        count: 10
-        nodes: 6
-        tasks: 24
-      - name: lammps-8
-        command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-        count: 10
-        nodes: 8
-        tasks: 32
-
-    minicluster:
+  # The MiniCluster that will run the ensemble
+  - minicluster:
       spec:
         size: 1
         minSize: 1
@@ -68,3 +35,42 @@ spec:
             requests:
               cpu: 3
 
+    # The ensemble configuration file (what is provided to ensemble python)
+    ensemble: |
+      logging:
+        debug: true
+
+      jobs:
+        - name: echo
+          command: echo hello world
+          count: 5
+          nodes: 1
+        - name: echo-again
+          command: echo hello world again
+          count: 2
+          nodes: 1
+        - name: sleep
+          command: sleep 10
+          count: 1
+          nodes: 1
+
+      rules:
+        # 1. This rule says to submit the sleep jobs when we start
+        - trigger: start
+          action:
+            name: submit
+            label: sleep
+
+        - trigger: metric
+          name: count.sleep.success
+          when: 1
+          action:
+            name: submit
+            label: echo
+
+        # When we have a successful echo jobs, submit echo again
+        - trigger: job-finish
+          name: echo
+          action:
+            name: custom
+            label: echo_again

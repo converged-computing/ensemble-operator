@@ -90,9 +90,16 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 	fmt.Printf("      Members %d\n", len(ensemble.Spec.Members))
 
-	// Do we need to init the jobs matrix?
-	if len(ensemble.Status.Jobs) == 0 {
-		return r.initJobsMatrix(ctx, &ensemble)
+	// First create the grpc service that will coordinate with all ensembles
+	// This takes stress off of the operator to do the individual updaters,
+	// and we only need to change here to request changes to the elements
+	// themselves (e.g., scale up/down).
+
+	// This is on the same headless service as the MiniCluster (or ensemble members)
+	// It needs to be running first, in case there are requests to it from members!
+	result, err := r.ensureEnsembleService(ctx, &ensemble)
+	if err != nil {
+		return result, err
 	}
 
 	// Ensure we have the MiniCluster (get or create!)
@@ -102,29 +109,33 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 
+			// Create the config map volume (the ensemble.yaml)
+			// for the MiniCluster to run as the entrypoint
+			result, err := r.ensureEnsembleConfig(ctx, &ensemble, &member)
+			if err != nil {
+				return result, err
+			}
+
 			// Name is the index + ensemble name
 			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			result, err := r.ensureMiniClusterEnsemble(ctx, name, &ensemble, &member)
+			result, err = r.ensureMiniClusterEnsemble(ctx, name, &ensemble, &member)
 			if err != nil {
 				return result, err
 			}
 		}
-		// TODO do we want to reconcile earlier here, between ensemble components?
 	}
 
-	// When we have all ensembles, get updates
+	// When we have all ensembles, ensure they are initialized
 	// I'm assuming here these queries might also be member-specific
 	for i, member := range ensemble.Spec.Members {
 
 		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			fmt.Printf("      Checking member %s\n", name)
-			result, err := r.updateMiniClusterEnsemble(ctx, name, &ensemble, &member, i)
+			fmt.Printf("      Initializing member %s\n", name)
+			//			result, err := r.setupMiniClusterEnsemble(ctx, name, &ensemble, &member, i)
 
-			// An error could indicates a requeue (without the break) since something was off
-			// We likely need to tweak this a bit to account for potential updates to specific
-			// ensemble members, but this is fine for a first shot.
+			// An error is likely not being ready, so we keep trying
 			if err != nil {
 				return result, err
 			}
@@ -133,7 +144,7 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	fmt.Println("      Ensemble is Ready!")
 
 	// If we've run updates across them, should requeue per preference of ensemble check frequency
-	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, nil
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

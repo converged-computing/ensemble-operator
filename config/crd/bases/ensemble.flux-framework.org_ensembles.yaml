@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: ensembles.ensemble.flux-framework.org
 spec:
   group: ensemble.flux-framework.org
@@ -20,134 +20,61 @@ spec:
         description: Ensemble is the Schema for the ensembles API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
           spec:
             description: EnsembleSpec defines the desired state of Ensemble
             properties:
-              algorithm:
-                description: Global algorithmt to use, unless a member has a specific
-                  algorithm
-                properties:
-                  name:
-                    default: workload-demand
-                    type: string
-                  options:
-                    additionalProperties:
-                      anyOf:
-                      - type: integer
-                      - type: string
-                      x-kubernetes-int-or-string: true
-                    description: Options for the algorithm
-                    type: object
-                type: object
-              checkSeconds:
-                default: 10
-                description: After ensemble creation, how long should we reconcile
-                  (in other words, how many seconds between checks?) Defaults to 10
-                  seconds
-                format: int32
-                type: integer
               members:
-                description: Foo is an example field of Ensemble. Edit ensemble_types.go
-                  to remove/update
                 items:
-                  description: A member of the ensemble that will run for some number
-                    of times, optionally with a maximum or minumum
+                  description: |-
+                    A member of the ensemble that will run for some number of times,
+                    optionally with a maximum or minumum
                   properties:
-                    algorithm:
-                      description: Member specific algorithm to use If not defined,
-                        defaults to workload-demand
-                      properties:
-                        name:
-                          default: workload-demand
-                          type: string
-                        options:
-                          additionalProperties:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            x-kubernetes-int-or-string: true
-                          description: Options for the algorithm
-                          type: object
-                      type: object
-                    jobs:
-                      description: A member is required to define one or more jobs
-                        These are passed into status for further updating Jobs
-                      items:
-                        description: Job defines a unit of work for the ensemble to
-                          munch on. Munch munch munch.
-                        properties:
-                          command:
-                            description: Command given to flux
-                            type: string
-                          count:
-                            default: 1
-                            description: Number of jobs to run This can be set to
-                              0 depending on the algorithm E.g., some algorithms decide
-                              on the number to submit
-                            format: int32
-                            type: integer
-                          duration:
-                            description: Duration of jobs Value of 0 (default) indicates
-                              no limit
-                            format: int32
-                            type: integer
-                          name:
-                            description: Name to identify the job group
-                            type: string
-                          nodes:
-                            default: 1
-                            description: Number of nodes for job
-                            format: int32
-                            type: integer
-                          tasks:
-                            description: Number of tasks for the job, defaults to
-                              1 Node count cannot be greater than task count
-                            format: int32
-                            type: integer
-                          workdir:
-                            description: Working directory for job group (if unset,
-                              uses container default)
-                            type: string
-                        required:
-                        - command
-                        - name
-                        type: object
-                      type: array
+                    ensemble:
+                      description: Ensemble yaml (configuration file)
+                      type: string
                     minicluster:
-                      description: MiniCluster is of a type MiniCluster, the base
-                        unit of an ensemble. We do this because we install a flux
-                        metrics API within each MiniCluster to manage it TODO where
-                        should the user define the size? Here or with the member?
+                      description: |-
+                        MiniCluster is of a type MiniCluster, the base unit of an ensemble.
+                        We do this because we install a flux metrics API within each MiniCluster to manage it
+                        TODO where should the user define the size? Here or with the member?
                       properties:
                         apiVersion:
-                          description: 'APIVersion defines the versioned schema of
-                            this representation of an object. Servers should convert
-                            recognized schemas to the latest internal value, and may
-                            reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                          description: |-
+                            APIVersion defines the versioned schema of this representation of an object.
+                            Servers should convert recognized schemas to the latest internal value, and
+                            may reject unrecognized values.
+                            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                           type: string
                         kind:
-                          description: 'Kind is a string value representing the REST
-                            resource this object represents. Servers may infer this
-                            from the endpoint the client submits requests to. Cannot
-                            be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                          description: |-
+                            Kind is a string value representing the REST resource this object represents.
+                            Servers may infer this from the endpoint the client submits requests to.
+                            Cannot be updated.
+                            In CamelCase.
+                            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                           type: string
                         metadata:
                           type: object
                         spec:
-                          description: MiniCluster is an HPC cluster in Kubernetes
-                            you can control Either to submit a single job (and go
-                            away) or for a persistent single- or multi- user cluster
+                          description: |-
+                            MiniCluster is an HPC cluster in Kubernetes you can control
+                            Either to submit a single job (and go away) or for a persistent single- or multi- user cluster
                           properties:
                             archive:
                               description: Archive to load or save
@@ -162,9 +89,9 @@ spec:
                                 broker pod is complete
                               type: boolean
                             containers:
-                              description: Containers is one or more containers to
-                                be created in a pod. There should only be one container
-                                to run flux with runFlux
+                              description: |-
+                                Containers is one or more containers to be created in a pod.
+                                There should only be one container to run flux with runFlux
                               items:
                                 properties:
                                   batch:
@@ -199,9 +126,9 @@ spec:
                                           PreCommand, after asFlux is set (can override)
                                         type: string
                                       prefix:
-                                        description: Prefix to flux start / submit
-                                          / broker Typically used for a wrapper command
-                                          to mount, etc.
+                                        description: |-
+                                          Prefix to flux start / submit / broker
+                                          Typically used for a wrapper command to mount, etc.
                                         type: string
                                       script:
                                         description: Custom script for submit (e.g.,
@@ -227,15 +154,17 @@ spec:
                                       and flux-sched install
                                     type: string
                                   imagePullSecret:
-                                    description: Allow the user to pull authenticated
-                                      images By default no secret is selected. Setting
-                                      this with the name of an already existing imagePullSecret
-                                      will specify that secret in the pod spec.
+                                    description: |-
+                                      Allow the user to pull authenticated images
+                                      By default no secret is selected. Setting
+                                      this with the name of an already existing
+                                      imagePullSecret will specify that secret
+                                      in the pod spec.
                                     type: string
                                   launcher:
-                                    description: Indicate that the command is a launcher
-                                      that will ask for its own jobs (and provided
-                                      directly to flux start)
+                                    description: |-
+                                      Indicate that the command is a launcher that will
+                                      ask for its own jobs (and provided directly to flux start)
                                     type: boolean
                                   lifeCycle:
                                     description: Lifecycle can handle post start commands,
@@ -258,9 +187,9 @@ spec:
                                       for flux, add to path, etc?
                                     type: boolean
                                   ports:
-                                    description: Ports to be exposed to other containers
-                                      in the cluster We take a single list of integers
-                                      and map to the same
+                                    description: |-
+                                      Ports to be exposed to other containers in the cluster
+                                      We take a single list of integers and map to the same
                                     items:
                                       format: int32
                                       type: integer
@@ -268,9 +197,10 @@ spec:
                                     x-kubernetes-list-type: atomic
                                   pullAlways:
                                     default: false
-                                    description: Allow the user to dictate pulling
-                                      By default we pull if not present. Setting this
-                                      to true will indicate to pull always
+                                    description: |-
+                                      Allow the user to dictate pulling
+                                      By default we pull if not present. Setting
+                                      this to true will indicate to pull always
                                     type: boolean
                                   resources:
                                     description: Resources include limits and requests
@@ -296,9 +226,9 @@ spec:
                                     type: boolean
                                   secrets:
                                     additionalProperties:
-                                      description: Secret describes a secret from
-                                        the environment. The envar name should be
-                                        the key of the top level map.
+                                      description: |-
+                                        Secret describes a secret from the environment.
+                                        The envar name should be the key of the top level map.
                                       properties:
                                         key:
                                           description: Key under secretKeyRef->Key
@@ -310,12 +240,14 @@ spec:
                                       - key
                                       - name
                                       type: object
-                                    description: Secrets that will be added to the
-                                      environment The user is expected to create their
-                                      own secrets for the operator to find
+                                    description: |-
+                                      Secrets that will be added to the environment
+                                      The user is expected to create their own secrets for the operator to find
                                     type: object
                                   securityContext:
-                                    description: Security Context https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+                                    description: |-
+                                      Security Context
+                                      https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
                                     properties:
                                       addCapabilities:
                                         description: Capabilities to add
@@ -335,9 +267,9 @@ spec:
                                             volume is a PVC
                                           type: string
                                         configMapName:
-                                          description: Config map name if the existing
-                                            volume is a config map You should also
-                                            define items if you are using this
+                                          description: |-
+                                            Config map name if the existing volume is a config map
+                                            You should also define items if you are using this
                                           type: string
                                         hostPath:
                                           description: An existing hostPath to bind
@@ -371,9 +303,9 @@ spec:
                               x-kubernetes-list-type: atomic
                             deadlineSeconds:
                               default: 31500000
-                              description: Should the job be limited to a particular
-                                number of seconds? Approximately one year. This cannot
-                                be zero or job won't start
+                              description: |-
+                                Should the job be limited to a particular number of seconds?
+                                Approximately one year. This cannot be zero or job won't start
                               format: int64
                               type: integer
                             flux:
@@ -381,53 +313,55 @@ spec:
                                 cluster
                               properties:
                                 arch:
-                                  description: Change the arch string - determines
-                                    the binaries that are downloaded to run the entrypoint
+                                  description: |-
+                                    Change the arch string - determines the binaries
+                                    that are downloaded to run the entrypoint
                                   type: string
                                 brokerConfig:
-                                  description: Optionally provide a manually created
-                                    broker config this is intended for bursting to
-                                    remote clusters
+                                  description: |-
+                                    Optionally provide a manually created broker config
+                                    this is intended for bursting to remote clusters
                                   type: string
                                 bursting:
-                                  description: Bursting - one or more external clusters
-                                    to burst to We assume a single, central MiniCluster
-                                    with an ipaddress that all connect to.
+                                  description: |-
+                                    Bursting - one or more external clusters to burst to
+                                    We assume a single, central MiniCluster with an ipaddress
+                                    that all connect to.
                                   properties:
                                     clusters:
-                                      description: External clusters to burst to.
-                                        Each external cluster must share the same
-                                        listing to align ranks
+                                      description: |-
+                                        External clusters to burst to. Each external
+                                        cluster must share the same listing to align ranks
                                       items:
                                         properties:
                                           name:
-                                            description: The hostnames for the bursted
-                                              clusters If set, the user is responsible
-                                              for ensuring uniqueness. The operator
-                                              will set to burst-N
+                                            description: |-
+                                              The hostnames for the bursted clusters
+                                              If set, the user is responsible for ensuring
+                                              uniqueness. The operator will set to burst-N
                                             type: string
                                           size:
-                                            description: Size of bursted cluster.
-                                              Defaults to same size as local minicluster
-                                              if not set
+                                            description: |-
+                                              Size of bursted cluster.
+                                              Defaults to same size as local minicluster if not set
                                             format: int32
                                             type: integer
                                         type: object
                                       type: array
                                       x-kubernetes-list-type: atomic
                                     hostlist:
-                                      description: Hostlist is a custom hostlist for
-                                        the broker.toml that includes the local plus
-                                        bursted cluster. This is typically used for
-                                        bursting to another resource type, where we
-                                        can predict the hostnames but they don't follow
-                                        the same convention as the Flux Operator
+                                      description: |-
+                                        Hostlist is a custom hostlist for the broker.toml
+                                        that includes the local plus bursted cluster. This
+                                        is typically used for bursting to another resource
+                                        type, where we can predict the hostnames but they
+                                        don't follow the same convention as the Flux Operator
                                       type: string
                                     leadBroker:
-                                      description: The lead broker ip address to join
-                                        to. E.g., if we burst to cluster 2, this is
-                                        the address to connect to cluster 1 For the
-                                        first cluster, this should not be defined
+                                      description: |-
+                                        The lead broker ip address to join to. E.g., if we burst
+                                        to cluster 2, this is the address to connect to cluster 1
+                                        For the first cluster, this should not be defined
                                       properties:
                                         address:
                                           description: Lead broker address (ip or
@@ -454,8 +388,9 @@ spec:
                                       type: object
                                   type: object
                                 completeWorkers:
-                                  description: Complete workers when they fail This
-                                    is ideal if you don't want them to restart
+                                  description: |-
+                                    Complete workers when they fail
+                                    This is ideal if you don't want them to restart
                                   type: boolean
                                 connectTimeout:
                                   default: 5s
@@ -475,11 +410,12 @@ spec:
                                       default: ghcr.io/converged-computing/flux-view-rocky:tag-9
                                       type: string
                                     imagePullSecret:
-                                      description: Allow the user to pull authenticated
-                                        images By default no secret is selected. Setting
+                                      description: |-
+                                        Allow the user to pull authenticated images
+                                        By default no secret is selected. Setting
                                         this with the name of an already existing
-                                        imagePullSecret will specify that secret in
-                                        the pod spec.
+                                        imagePullSecret will specify that secret
+                                        in the pod spec.
                                       type: string
                                     mountPath:
                                       default: /mnt/flux
@@ -493,7 +429,8 @@ spec:
                                       type: string
                                     pullAlways:
                                       default: false
-                                      description: Allow the user to dictate pulling
+                                      description: |-
+                                        Allow the user to dictate pulling
                                         By default we pull if not present. Setting
                                         this to true will indicate to pull always
                                       type: boolean
@@ -501,9 +438,10 @@ spec:
                                       description: Customize python path for flux
                                       type: string
                                     resources:
-                                      description: Resources include limits and requests
-                                        These must be defined for cpu and memory for
-                                        the QoS to be Guaranteed
+                                      description: |-
+                                        Resources include limits and requests
+                                        These must be defined for cpu and memory
+                                        for the QoS to be Guaranteed
                                       properties:
                                         limits:
                                           additionalProperties:
@@ -526,10 +464,10 @@ spec:
                                       type: string
                                   type: object
                                 curveCert:
-                                  description: Optionally provide an already existing
-                                    curve certificate This is not recommended in favor
-                                    of providing the secret name as curveCertSecret,
-                                    below
+                                  description: |-
+                                    Optionally provide an already existing curve certificate
+                                    This is not recommended in favor of providing the secret
+                                    name as curveCertSecret, below
                                   type: string
                                 logLevel:
                                   default: 6
@@ -542,20 +480,21 @@ spec:
                                     reduce load on DNS)
                                   type: boolean
                                 mungeSecret:
-                                  description: Expect a secret (named according to
-                                    this string) for a munge key. This is intended
-                                    for bursting. Assumed to be at /etc/munge/munge.key
+                                  description: |-
+                                    Expect a secret (named according to this string)
+                                    for a munge key. This is intended for bursting.
+                                    Assumed to be at /etc/munge/munge.key
                                     This is binary data.
                                   type: string
                                 noWaitSocket:
                                   description: Do not wait for the socket
                                   type: boolean
                                 optionFlags:
-                                  description: Flux option flags, usually provided
-                                    with -o optional - if needed, default option flags
-                                    for the server These can also be set in the user
-                                    interface to override here. This is only valid
-                                    for a FluxRunner "runFlux" true
+                                  description: |-
+                                    Flux option flags, usually provided with -o
+                                    optional - if needed, default option flags for the server
+                                    These can also be set in the user interface to override here.
+                                    This is only valid for a FluxRunner "runFlux" true
                                   type: string
                                 scheduler:
                                   description: Custom attributes for the fluxion scheduler
@@ -616,10 +555,10 @@ spec:
                               format: int32
                               type: integer
                             minSize:
-                              description: MinSize (minimum number of pods that must
-                                be up for Flux) Note that this option does not edit
-                                the number of tasks, so a job could run with fewer
-                                (and then not start)
+                              description: |-
+                                MinSize (minimum number of pods that must be up for Flux)
+                                Note that this option does not edit the number of tasks,
+                                so a job could run with fewer (and then not start)
                               format: int32
                               type: integer
                             network:
@@ -669,8 +608,9 @@ spec:
                                   type: string
                               type: object
                             services:
-                              description: Services are one or more service containers
-                                to bring up alongside the MiniCluster.
+                              description: |-
+                                Services are one or more service containers to bring up
+                                alongside the MiniCluster.
                               items:
                                 properties:
                                   batch:
@@ -705,9 +645,9 @@ spec:
                                           PreCommand, after asFlux is set (can override)
                                         type: string
                                       prefix:
-                                        description: Prefix to flux start / submit
-                                          / broker Typically used for a wrapper command
-                                          to mount, etc.
+                                        description: |-
+                                          Prefix to flux start / submit / broker
+                                          Typically used for a wrapper command to mount, etc.
                                         type: string
                                       script:
                                         description: Custom script for submit (e.g.,
@@ -733,15 +673,17 @@ spec:
                                       and flux-sched install
                                     type: string
                                   imagePullSecret:
-                                    description: Allow the user to pull authenticated
-                                      images By default no secret is selected. Setting
-                                      this with the name of an already existing imagePullSecret
-                                      will specify that secret in the pod spec.
+                                    description: |-
+                                      Allow the user to pull authenticated images
+                                      By default no secret is selected. Setting
+                                      this with the name of an already existing
+                                      imagePullSecret will specify that secret
+                                      in the pod spec.
                                     type: string
                                   launcher:
-                                    description: Indicate that the command is a launcher
-                                      that will ask for its own jobs (and provided
-                                      directly to flux start)
+                                    description: |-
+                                      Indicate that the command is a launcher that will
+                                      ask for its own jobs (and provided directly to flux start)
                                     type: boolean
                                   lifeCycle:
                                     description: Lifecycle can handle post start commands,
@@ -764,9 +706,9 @@ spec:
                                       for flux, add to path, etc?
                                     type: boolean
                                   ports:
-                                    description: Ports to be exposed to other containers
-                                      in the cluster We take a single list of integers
-                                      and map to the same
+                                    description: |-
+                                      Ports to be exposed to other containers in the cluster
+                                      We take a single list of integers and map to the same
                                     items:
                                       format: int32
                                       type: integer
@@ -774,9 +716,10 @@ spec:
                                     x-kubernetes-list-type: atomic
                                   pullAlways:
                                     default: false
-                                    description: Allow the user to dictate pulling
-                                      By default we pull if not present. Setting this
-                                      to true will indicate to pull always
+                                    description: |-
+                                      Allow the user to dictate pulling
+                                      By default we pull if not present. Setting
+                                      this to true will indicate to pull always
                                     type: boolean
                                   resources:
                                     description: Resources include limits and requests
@@ -802,9 +745,9 @@ spec:
                                     type: boolean
                                   secrets:
                                     additionalProperties:
-                                      description: Secret describes a secret from
-                                        the environment. The envar name should be
-                                        the key of the top level map.
+                                      description: |-
+                                        Secret describes a secret from the environment.
+                                        The envar name should be the key of the top level map.
                                       properties:
                                         key:
                                           description: Key under secretKeyRef->Key
@@ -816,12 +759,14 @@ spec:
                                       - key
                                       - name
                                       type: object
-                                    description: Secrets that will be added to the
-                                      environment The user is expected to create their
-                                      own secrets for the operator to find
+                                    description: |-
+                                      Secrets that will be added to the environment
+                                      The user is expected to create their own secrets for the operator to find
                                     type: object
                                   securityContext:
-                                    description: Security Context https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+                                    description: |-
+                                      Security Context
+                                      https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
                                     properties:
                                       addCapabilities:
                                         description: Capabilities to add
@@ -841,9 +786,9 @@ spec:
                                             volume is a PVC
                                           type: string
                                         configMapName:
-                                          description: Config map name if the existing
-                                            volume is a config map You should also
-                                            define items if you are using this
+                                          description: |-
+                                            Config map name if the existing volume is a config map
+                                            You should also define items if you are using this
                                           type: string
                                         hostPath:
                                           description: An existing hostPath to bind
@@ -880,9 +825,9 @@ spec:
                               type: boolean
                             size:
                               default: 1
-                              description: Size (number of job pods to run, size of
-                                minicluster in pods) This is also the minimum number
-                                required to start Flux
+                              description: |-
+                                Size (number of job pods to run, size of minicluster in pods)
+                                This is also the minimum number required to start Flux
                               format: int32
                               type: integer
                             tasks:
@@ -903,51 +848,45 @@ spec:
                                 MiniCluster states
                               items:
                                 description: "Condition contains details for one aspect
-                                  of the current state of this API Resource. --- This
+                                  of the current state of this API Resource.\n---\nThis
                                   struct is intended for direct use as an array at
-                                  the field path .status.conditions.  For example,
-                                  \n type FooStatus struct{ // Represents the observations
-                                  of a foo's current state. // Known .status.conditions.type
-                                  are: \"Available\", \"Progressing\", and \"Degraded\"
-                                  // +patchMergeKey=type // +patchStrategy=merge //
-                                  +listType=map // +listMapKey=type Conditions []metav1.Condition
-                                  `json:\"conditions,omitempty\" patchStrategy:\"merge\"
-                                  patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
-                                  \n // other fields }"
+                                  the field path .status.conditions.  For example,\n\n\n\ttype
+                                  FooStatus struct{\n\t    // Represents the observations
+                                  of a foo's current state.\n\t    // Known .status.conditions.type
+                                  are: \"Available\", \"Progressing\", and \"Degraded\"\n\t
+                                  \   // +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t
+                                  \   // +listType=map\n\t    // +listMapKey=type\n\t
+                                  \   Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                                  patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                                  \   // other fields\n\t}"
                                 properties:
                                   lastTransitionTime:
-                                    description: lastTransitionTime is the last time
-                                      the condition transitioned from one status to
-                                      another. This should be when the underlying
-                                      condition changed.  If that is not known, then
-                                      using the time when the API field changed is
-                                      acceptable.
+                                    description: |-
+                                      lastTransitionTime is the last time the condition transitioned from one status to another.
+                                      This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                                     format: date-time
                                     type: string
                                   message:
-                                    description: message is a human readable message
-                                      indicating details about the transition. This
-                                      may be an empty string.
+                                    description: |-
+                                      message is a human readable message indicating details about the transition.
+                                      This may be an empty string.
                                     maxLength: 32768
                                     type: string
                                   observedGeneration:
-                                    description: observedGeneration represents the
-                                      .metadata.generation that the condition was
-                                      set based upon. For instance, if .metadata.generation
-                                      is currently 12, but the .status.conditions[x].observedGeneration
-                                      is 9, the condition is out of date with respect
-                                      to the current state of the instance.
+                                    description: |-
+                                      observedGeneration represents the .metadata.generation that the condition was set based upon.
+                                      For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                                      with respect to the current state of the instance.
                                     format: int64
                                     minimum: 0
                                     type: integer
                                   reason:
-                                    description: reason contains a programmatic identifier
-                                      indicating the reason for the condition's last
-                                      transition. Producers of specific condition
-                                      types may define expected values and meanings
-                                      for this field, and whether the values are considered
-                                      a guaranteed API. The value should be a CamelCase
-                                      string. This field may not be empty.
+                                    description: |-
+                                      reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                                      Producers of specific condition types may define expected values and meanings for this field,
+                                      and whether the values are considered a guaranteed API.
+                                      The value should be a CamelCase string.
+                                      This field may not be empty.
                                     maxLength: 1024
                                     minLength: 1
                                     pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
@@ -961,13 +900,12 @@ spec:
                                     - Unknown
                                     type: string
                                   type:
-                                    description: type of condition in CamelCase or
-                                      in foo.example.com/CamelCase. --- Many .condition.type
-                                      values are consistent across resources like
-                                      Available, but because arbitrary conditions
-                                      can be useful (see .node.status.conditions),
-                                      the ability to deconflict is important. The
-                                      regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                                    description: |-
+                                      type of condition in CamelCase or in foo.example.com/CamelCase.
+                                      ---
+                                      Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                                      useful (see .node.status.conditions), the ability to deconflict is important.
+                                      The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                                     maxLength: 316
                                     pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                                     type: string
@@ -981,13 +919,14 @@ spec:
                               type: array
                               x-kubernetes-list-type: atomic
                             jobid:
-                              description: The Jobid is set internally to associate
-                                to a miniCluster This isn't currently in use, we only
-                                have one!
+                              description: |-
+                                The Jobid is set internally to associate to a miniCluster
+                                This isn't currently in use, we only have one!
                               type: string
                             maximumSize:
-                              description: We keep the original size of the MiniCluster
-                                request as this is the absolute maximum
+                              description: |-
+                                We keep the original size of the MiniCluster request as
+                                this is the absolute maximum
                               format: int32
                               type: integer
                             selector:
@@ -1003,88 +942,38 @@ spec:
                           - size
                           type: object
                       type: object
-                    sidecar:
-                      description: Definition and customization of the sidecar
-                      properties:
-                        image:
-                          default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
-                          description: Baseimage for the sidecar that will monitor
-                            the queue. Ensure that the operating systems match!
-                          type: string
-                        port:
-                          default: "50051"
-                          type: string
-                        pullAlways:
-                          description: Always pull the sidecar container (useful for
-                            development)
-                          type: boolean
-                        workers:
-                          default: 10
-                          format: int32
-                          type: integer
-                      required:
-                      - port
-                      - workers
-                      type: object
                   required:
-                  - jobs
+                  - ensemble
                   type: object
                 type: array
+              sidecar:
+                description: Definition and customization of the sidecar
+                properties:
+                  image:
+                    default: ghcr.io/converged-computing/ensemble-operator-api:rockylinux9
+                    description: |-
+                      Baseimage for the sidecar that will monitor the queue.
+                      Ensure that the operating systems match!
+                    type: string
+                  port:
+                    default: "50051"
+                    type: string
+                  pullAlways:
+                    description: Always pull the sidecar container (useful for development)
+                    type: boolean
+                  workers:
+                    default: 10
+                    format: int32
+                    type: integer
+                required:
+                - port
+                - workers
+                type: object
             required:
-            - checkSeconds
             - members
             type: object
           status:
             description: EnsembleStatus defines the observed state of Ensemble
-            properties:
-              jobs:
-                additionalProperties:
-                  items:
-                    description: Job defines a unit of work for the ensemble to munch
-                      on. Munch munch munch.
-                    properties:
-                      command:
-                        description: Command given to flux
-                        type: string
-                      count:
-                        default: 1
-                        description: Number of jobs to run This can be set to 0 depending
-                          on the algorithm E.g., some algorithms decide on the number
-                          to submit
-                        format: int32
-                        type: integer
-                      duration:
-                        description: Duration of jobs Value of 0 (default) indicates
-                          no limit
-                        format: int32
-                        type: integer
-                      name:
-                        description: Name to identify the job group
-                        type: string
-                      nodes:
-                        default: 1
-                        description: Number of nodes for job
-                        format: int32
-                        type: integer
-                      tasks:
-                        description: Number of tasks for the job, defaults to 1 Node
-                          count cannot be greater than task count
-                        format: int32
-                        type: integer
-                      workdir:
-                        description: Working directory for job group (if unset, uses
-                          container default)
-                        type: string
-                    required:
-                    - command
-                    - name
-                    type: object
-                  type: array
-                description: These lookup values must be string, so we convert from
-                  int32 to it Jobs matrix lookup (what we can mutate)
-                type: object
-            required:
-            - jobs
             type: object
         type: object
     served: true
