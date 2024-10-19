@@ -23,7 +23,6 @@ jobs:
         export PATH="/usr/share/miniconda/bin:$PATH"
         source activate black
         pip install -r .github/dev-requirements.txt
-        cd python
         pre-commit run --all-files
 
     - name: Setup Go
