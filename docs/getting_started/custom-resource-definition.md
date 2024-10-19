@@ -25,7 +25,7 @@ apiVersion: ensemble.flux-framework.org/v1alpha1
 kind: Ensemble
 metadata:
   name: ensemble
-spec:  
+spec:
 
   # This is how you change the sidcar image, if needed. This is the one
   # that I push and use for development. Pull always ensures we get latest
@@ -41,14 +41,14 @@ spec:
         size: 1
         minSize: 1
         maxSize: 16
-        
+
         # uncomment to make interactive and debug
         # interactive: true
 
         # The workers should not fail when they clean up
         flux:
           completeWorkers: true
-        
+
         # This is a list because a pod can support multiple containers
         containers:
         - image: ghcr.io/converged-computing/metric-lammps:latest
