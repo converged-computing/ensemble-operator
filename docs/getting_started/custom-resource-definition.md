@@ -11,50 +11,105 @@ for an Ensemble. This document describes the spec of our custom resource definit
 
 ## Custom Resource Definition
 
-The custom resource definition is a YAML file that holds the options you can define. Let's look at an example for running LAMMPS
-with the currently available algorithm "workload-demand" - the file is annotated to provide detail to each section, which is also provided below.
+The custom resource definition is a YAML file that holds the options you can define. Let's look at the hello-world example that will submit different groups of jobs. Specifically:
+
+1. Submit a sleep job when the ensemble starts.
+2. When the sleep job is successful, submit 5 echo jobs
+3. Submit echo-again each time we have a single echo job finish (this means the rule will trigger 5 times)
+4. When we have 10 echo-again finish (since the above is 5*2) terminate!
+
+Note that if you don't have a terminate action, the ensemble will not terminate. If you don't specify repetitions for a job event (e.g., `job-finish`) it assumes 1.
 
 ```yaml
 apiVersion: ensemble.flux-framework.org/v1alpha1
 kind: Ensemble
 metadata:
-  name: workload-demand
-spec:
+  name: ensemble
+spec:  
 
-  # The service deployment sidecar is where the ensemble sidecar gRPC service 
-  # runs for all ensemble members in the space. It exists to remove the burden
-  # off of the operator itself. 
-  - sidecar:
-      pullAlways: true
-      image: ghcr.io/converged-computing/ensemble-python:latest
+  # This is how you change the sidcar image, if needed. This is the one
+  # that I push and use for development. Pull always ensures we get latest
+  sidecar:
+    pullAlways: true
+    image: ghcr.io/converged-computing/ensemble-python:latest
 
-  # Each ensemble can hold one or more members.
-  # The only valid member type is currently a Flux Operator MiniCluster
   members:
 
-    # The algorithm is represented in the ensemble.yaml, which has a set of jobs
-    # that are governed by rules (each with a trigger and action to take)
-   - ensemble: |
-      jobs:
-        - name: lammps
-          command: lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite
-          count: 10
-          nodes: 1
-
-    # This is a full MiniCluster CRD, directly from the Flux Operator!
-    # If you don't set a maxSize it defaults to size
-    minicluster:
+  # The MiniCluster that will run the ensemble
+  - minicluster:
       spec:
-        size: 2
-        maxSize: 10
-        minSize: 2
+        size: 1
+        minSize: 1
+        maxSize: 16
+        
+        # uncomment to make interactive and debug
+        # interactive: true
 
+        # The workers should not fail when they clean up
+        flux:
+          completeWorkers: true
+        
         # This is a list because a pod can support multiple containers
         containers:
         - image: ghcr.io/converged-computing/metric-lammps:latest
 
           # You can set the working directory if your container WORKDIR is not correct.
           workingDir: /opt/lammps/examples/reaxff/HNS
+          resources:
+            limits:
+              cpu: 3
+            requests:
+              cpu: 3
+
+    # The ensemble configuration file (what is provided to ensemble python)
+    ensemble: |
+      logging:
+        debug: true
+
+      jobs:
+        - name: echo
+          command: echo hello world
+          count: 5
+          nodes: 1
+        - name: echo-again
+          command: echo hello world again
+          count: 2
+          nodes: 1
+        - name: sleep
+          command: sleep 10
+          count: 1
+          nodes: 1
+
+      rules:
+        # 1. This rule says to submit the sleep jobs when we start
+        - trigger: start
+          action:
+            name: submit
+            label: sleep
+
+        - trigger: metric
+          name: count.sleep.success
+          when: 1
+          action:
+            name: submit
+            label: echo
+
+        # When we have a successful echo job, submit echo again
+        # Do this 5 times (repetitions), otherwise it will just run once
+        - trigger: job-finish
+          name: echo
+          action:
+            name: submit
+            label: echo-again
+            repetitions: 5
+
+        # Terminate the ensemble when we have 2 successful of echo-again
+        # If you don't terminate the ensemble, the queue will keep waiting
+        - trigger: metric
+          name: count.echo-again.success
+          when: 10
+          action:
+            name: terminate
 ```
 
 Now we will discuss each section in detail.
@@ -123,4 +178,3 @@ start the MiniCluster in interactive mode.
 
 Note that for sidecar images, we provide automated builds for two versions of each of rocky and ubuntu.
 You can find them [here](https://github.com/converged-computing/ensemble-operator/pkgs/container/ensemble-operator-api).
-

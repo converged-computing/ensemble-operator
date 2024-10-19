@@ -41,7 +41,7 @@ spec:
     # The ensemble configuration file (what is provided to ensemble python)
     ensemble: |
       logging:
-        debug: true
+        debug: false
 
       jobs:
         - name: echo
@@ -71,9 +71,19 @@ spec:
             name: submit
             label: echo
 
-        # When we have a successful echo jobs, submit echo again
+        # When we have a successful echo job, submit echo again
+        # Do this 5 times (repetitions), otherwise it will just run once
         - trigger: job-finish
           name: echo
           action:
             name: submit
             label: echo-again
+            repetitions: 5
+
+        # Terminate the ensemble when we have 2 successful of echo-again
+        # If you don't terminate the ensemble, the queue will keep waiting
+        - trigger: metric
+          name: count.echo-again.success
+          when: 10
+          action:
+            name: terminate

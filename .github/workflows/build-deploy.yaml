@@ -8,42 +8,6 @@ on:
     - main
 
 jobs:
-  build-api:
-    permissions:
-      packages: write
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        x: [["ghcr.io/converged-computing/ensemble-operator-api:rockylinux9", "docker/Dockerfile.rocky", "9"],
-            ["ghcr.io/converged-computing/ensemble-operator-api:rockylinux8", "docker/Dockerfile.rocky", "8"],
-            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-jammy", "docker/Dockerfile.ubuntu", "22.04"],
-            ["ghcr.io/converged-computing/ensemble-operator-api:ubuntu-focal", "docker/Dockerfile.ubuntu", "20.04"]]
-
-    name: ${{ matrix.x[0] }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build Containers
-      env:
-        container: ${{ matrix.x[0] }}
-        dockerfile: ${{ matrix.x[1] }}
-        tag: ${{ matrix.x[2] }}
-      run: |
-        cd python/
-        docker build --build-arg tag=${tag} -f ${dockerfile} -t ${container}  .
-
-    - name: GHCR Login
-      if: (github.event_name != 'pull_request')
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Deploy Container
-      if: (github.event_name != 'pull_request')
-      env:
-        container: ${{ matrix.x[0] }}
-      run: docker push ${{ env.container }}
 
   # Only build arm image on merge, takes too long otherwise
   build-arm:

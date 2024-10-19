@@ -2,9 +2,11 @@
 
 ## Current Design
 
-This current design moves
+This current design moves the responsibility to monitor one or more ensembles from the operator to a service that is deployed alongside the members. It's a much better design to do that, and it also has a refactored [ensemble-python](https://github.com/converged-computing/ensemble-python) library that works external to the operator here (and Kubernetes in general) so you can run Ensembles alongside your workload manager a la carte!
 
 ![img/design.png](img/design.png)
+
+More to come on this soon. Right now we have the ensemble running for Flux inside of Kubernetes, and I'll be adding grow capability soon.
 
 ## Design 1
 
