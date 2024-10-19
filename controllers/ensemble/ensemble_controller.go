@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"reflect"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -53,6 +55,9 @@ type EnsembleReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods/log,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods/exec,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
+
+//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile until the cluster matches the state of the desired Ensemble
 // For more details, check Reconcile and its Result here:
@@ -152,5 +157,7 @@ func (r *EnsembleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&api.Ensemble{}).
 		Owns(&minicluster.MiniCluster{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
 		Complete(r)
 }

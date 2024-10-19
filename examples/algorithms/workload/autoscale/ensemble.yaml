@@ -19,6 +19,9 @@ spec:
         minSize: 1
         maxSize: 16
         
+        # uncomment to make interactive and debug
+        # interactive: true
+
         # The workers should not fail when they clean up
         flux:
           completeWorkers: true
@@ -72,5 +75,5 @@ spec:
         - trigger: job-finish
           name: echo
           action:
-            name: custom
-            label: echo_again
+            name: submit
+            label: echo-again

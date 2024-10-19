@@ -92,13 +92,19 @@ func (r *EnsembleReconciler) newEnsembleDeployment(ensemble *api.Ensemble) (*app
 
 	// Custom command with number of workers
 	workers := strconv.Itoa(int(ensemble.Spec.Sidecar.Workers))
-	command := []string{"ensemble-service", ensemble.Spec.Sidecar.Port, workers}
+	command := []string{
+		"ensemble-server",
+		"start",
+		"--port", ensemble.Spec.Sidecar.Port,
+		"--workers", workers,
+	}
 
 	// Assume 1 replica for now, we can always expose this
 	replicas := int32(1)
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: ensemble.Name,
+			Name:      ensemble.Name,
+			Namespace: ensemble.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &replicas,

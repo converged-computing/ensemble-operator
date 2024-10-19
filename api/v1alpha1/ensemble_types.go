@@ -23,12 +23,11 @@ import (
 
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/set"
 )
 
 var (
-	defaultSidecarbase   = "ghcr.io/converged-computing/ensemble-operator-api:rockylinux9"
-	defaultAlgorithmName = "workload-demand"
+	defaultSidecarbase = "ghcr.io/converged-computing/ensemble-python:latest"
+	defaultFluxView    = "ghcr.io/converged-computing/flux-view-ubuntu:tag-jammy"
 
 	MiniclusterType = "minicluster"
 	UnknownType     = "unknown"
@@ -109,11 +108,6 @@ func (m *Member) Size() int32 {
 func (e *Ensemble) Validate() error {
 	fmt.Println()
 
-	// These are the allowed sidecars
-	bases := set.New(
-		"ghcr.io/converged-computing/ensemble-python:latest",
-	)
-
 	// Global (entire cluster) settings
 	fmt.Printf("🤓 Ensemble.members %d\n", len(e.Spec.Members))
 
@@ -134,10 +128,6 @@ func (e *Ensemble) Validate() error {
 		sidecar = parts[0]
 	}
 
-	// Base container must be in valid set
-	if !bases.Has(sidecar) {
-		return fmt.Errorf("sidecar image %s is not known, must be in: %s", sidecar, bases)
-	}
 	fmt.Printf("      Ensemble.Sidecar.Image: %s\n", e.Spec.Sidecar.Image)
 	fmt.Printf("      Ensemble.Sidecar.Port: %s\n", e.Spec.Sidecar.Port)
 	fmt.Printf("      Ensemble.Sidecar.PullAlways: %v\n", e.Spec.Sidecar.PullAlways)
@@ -165,6 +155,10 @@ func (e *Ensemble) Validate() error {
 				member.MiniCluster.Spec.MaxSize = member.MiniCluster.Spec.Size
 			}
 
+			// If no default image, consider an error
+			if member.MiniCluster.Spec.Containers[0].Image == "" {
+				return fmt.Errorf("ensemble minicluster must have an image")
+			}
 			fmt.Println("      Ensemble.member Type: minicluster")
 
 			if member.MiniCluster.Spec.MaxSize <= 0 || member.MiniCluster.Spec.Size <= 0 {

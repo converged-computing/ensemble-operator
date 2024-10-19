@@ -14,6 +14,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+var (
+	// Assume the user chose the wrong view, and install python3 cffi
+	preCommand = `
+apt-get update && apt-get install -y python3-cffi || yum update && yum install -y python3-cffi
+python3 -m pip install ensemble-python || echo "please install ensemble-python"
+`
+)
+
 // ensureMiniClusterEnsemble ensures that the ensemle is created!
 func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 	ctx context.Context,
@@ -119,24 +127,29 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// The size should be set to the desired size
 	spec.ObjectMeta = metav1.ObjectMeta{Name: name, Namespace: ensemble.Namespace}
 
-	// Assign the first container as the flux runners (assuming one for now)
-	spec.Spec.Containers[0].RunFlux = true
-
-	// All clusters are interactive because we expect to be submitting jobs
-	spec.Spec.Interactive = true
-
 	// Ensure the service name is the ensemble name so the ensemble service
 	// can share it too!
-	spec.Spec.Network.HeadlessName = ensemble.Name
+	spec.Spec.Network = minicluster.Network{HeadlessName: ensemble.Name}
+
+	// Files to mount from configMap
+	items := map[string]string{
+		ensembleYamlName: ensembleYamlName,
+	}
 
 	// Add the config map as a volume to the main container
 	container := spec.Spec.Containers[0]
 	volume := minicluster.ContainerVolume{
 		ConfigMapName: ensemble.Name,
 		Path:          "/ensemble-entrypoint",
-		Items:         map[string]string{ensembleYamlName: ensembleYamlName},
+		Items:         items,
 	}
-	container.Volumes["ensemble-yaml"] = volume
+	container.Volumes = map[string]minicluster.ContainerVolume{ensemble.Name: volume}
+	container.RunFlux = true
+
+	// Install ensemble via python
+	container.Commands = minicluster.Commands{
+		Pre: preCommand,
+	}
 
 	// TODO this needs to know how to interact with the grpc
 	// we probably need to get the headless service name
