@@ -1,15 +1,17 @@
 # The Ensemble Operator
 
-This operator will deploy ensembles of HPC applications, first with just Flux Framework, but eventually to include other CRDs. You can select an algorithm to use across your ensemble, or within a specific member.
+This operator deploys ensembles of HPC applications, first with just Flux Framework, but eventually to include other CRDs. It uses [ensemble-python](https://github.com/converged-computing/ensemble-python) to orchestrate each ensemblem, and the operator is only pinged for update requests to grow or otherwise change the ensemble member. This means that the only requirement of your container is to have python3
+installed with pip.
 
 ![docs/getting_started/img/design.png](docs/getting_started/img/design.png)
 
-See [docs](docs) for the user guide, description of the [design](docs/design.md) above, and [algorithms](https://github.com/converged-computing/ensemble-operator/blob/main/docs/algorithms.md#algorithms) for our planned work in that space. We currently have the GRPC service endpoint and client (in the operator) working, and a regular check for the flux queue status, and just need to implement algorithms now that make sense. Note that due to the active role in the lifecycle of an ensemble member, this operator is intended to be running (relatively speaking) a smaller number of jobs, and having most of the work being done within the member.
+See [docs](docs) for the user guide, and description of the [design](docs/design.md) above. Previously we had algorithms, and now the design is more flexible to accept a set of jobs that are governed by rules (triggers and actions) akin to a state machine. These rules in and of themselves make up a custom algorithm for the work that you want to be done.
+
+**Important** This operator is in the midst of a refactor, and not production quality yet. Please come back soon.
 
 ## TODO
 
- - think about an experiment we could do, or should add other algorithms first?
- - Think about idea of shared jobs matrix that can go between members (advanced)
+- next step is to write the specific minicluster ensemble endpoint that has grow/shrink
 
 ## License
 

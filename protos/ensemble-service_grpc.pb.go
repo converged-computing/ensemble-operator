@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type EnsembleOperatorClient interface {
+	RequestUpdate(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*Response, error)
 	RequestStatus(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*Response, error)
 	RequestAction(ctx context.Context, in *ActionRequest, opts ...grpc.CallOption) (*Response, error)
 }
@@ -32,6 +33,15 @@ type ensembleOperatorClient struct {
 
 func NewEnsembleOperatorClient(cc grpc.ClientConnInterface) EnsembleOperatorClient {
 	return &ensembleOperatorClient{cc}
+}
+
+func (c *ensembleOperatorClient) RequestUpdate(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestUpdate", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *ensembleOperatorClient) RequestStatus(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*Response, error) {
@@ -56,6 +66,7 @@ func (c *ensembleOperatorClient) RequestAction(ctx context.Context, in *ActionRe
 // All implementations must embed UnimplementedEnsembleOperatorServer
 // for forward compatibility
 type EnsembleOperatorServer interface {
+	RequestUpdate(context.Context, *UpdateRequest) (*Response, error)
 	RequestStatus(context.Context, *StatusRequest) (*Response, error)
 	RequestAction(context.Context, *ActionRequest) (*Response, error)
 	mustEmbedUnimplementedEnsembleOperatorServer()
@@ -65,6 +76,9 @@ type EnsembleOperatorServer interface {
 type UnimplementedEnsembleOperatorServer struct {
 }
 
+func (UnimplementedEnsembleOperatorServer) RequestUpdate(context.Context, *UpdateRequest) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestUpdate not implemented")
+}
 func (UnimplementedEnsembleOperatorServer) RequestStatus(context.Context, *StatusRequest) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStatus not implemented")
 }
@@ -82,6 +96,24 @@ type UnsafeEnsembleOperatorServer interface {
 
 func RegisterEnsembleOperatorServer(s grpc.ServiceRegistrar, srv EnsembleOperatorServer) {
 	s.RegisterService(&EnsembleOperator_ServiceDesc, srv)
+}
+
+func _EnsembleOperator_RequestUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EnsembleOperatorServer).RequestUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/convergedcomputing.org.grpc.v1.EnsembleOperator/RequestUpdate",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EnsembleOperatorServer).RequestUpdate(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _EnsembleOperator_RequestStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -127,6 +159,10 @@ var EnsembleOperator_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "convergedcomputing.org.grpc.v1.EnsembleOperator",
 	HandlerType: (*EnsembleOperatorServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "RequestUpdate",
+			Handler:    _EnsembleOperator_RequestUpdate_Handler,
+		},
 		{
 			MethodName: "RequestStatus",
 			Handler:    _EnsembleOperator_RequestStatus_Handler,

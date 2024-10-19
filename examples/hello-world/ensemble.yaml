@@ -1,0 +1,89 @@
+apiVersion: ensemble.flux-framework.org/v1alpha1
+kind: Ensemble
+metadata:
+  name: ensemble
+spec:  
+
+  # This is how you change the sidcar image, if needed. This is the one
+  # that I push and use for development. Pull always ensures we get latest
+  sidecar:
+    pullAlways: true
+    image: ghcr.io/converged-computing/ensemble-python:latest
+
+  members:
+
+  # The MiniCluster that will run the ensemble
+  - minicluster:
+      spec:
+        size: 1
+        minSize: 1
+        maxSize: 16
+        
+        # uncomment to make interactive and debug
+        # interactive: true
+
+        # The workers should not fail when they clean up
+        flux:
+          completeWorkers: true
+        
+        # This is a list because a pod can support multiple containers
+        containers:
+        - image: ghcr.io/converged-computing/metric-lammps:latest
+
+          # You can set the working directory if your container WORKDIR is not correct.
+          workingDir: /opt/lammps/examples/reaxff/HNS
+          resources:
+            limits:
+              cpu: 3
+            requests:
+              cpu: 3
+
+    # The ensemble configuration file (what is provided to ensemble python)
+    ensemble: |
+      logging:
+        debug: false
+
+      jobs:
+        - name: echo
+          command: echo hello world
+          count: 5
+          nodes: 1
+        - name: echo-again
+          command: echo hello world again
+          count: 2
+          nodes: 1
+        - name: sleep
+          command: sleep 10
+          count: 1
+          nodes: 1
+
+      rules:
+        # 1. This rule says to submit the sleep jobs when we start
+        - trigger: start
+          action:
+            name: submit
+            label: sleep
+
+        - trigger: metric
+          name: count.sleep.success
+          when: 1
+          action:
+            name: submit
+            label: echo
+
+        # When we have a successful echo job, submit echo again
+        # Do this 5 times (repetitions), otherwise it will just run once
+        - trigger: job-finish
+          name: echo
+          action:
+            name: submit
+            label: echo-again
+            repetitions: 5
+
+        # Terminate the ensemble when we have 2 successful of echo-again
+        # If you don't terminate the ensemble, the queue will keep waiting
+        - trigger: metric
+          name: count.echo-again.success
+          when: 10
+          action:
+            name: terminate

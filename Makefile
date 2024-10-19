@@ -67,16 +67,6 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-
-.PHONY: python
-python: python ## Generate python proto files in python
-	# pip install grpcio-tools
-	# pip freeze | grep grpcio-tools
-	mkdir -p python/ensemble_operator/protos
-	cd python/ensemble_operator/protos
-	python -m grpc_tools.protoc -I./protos --python_out=./python/ensemble_operator/protos --pyi_out=./python/ensemble_operator/protos --grpc_python_out=./python/ensemble_operator/protos ./protos/ensemble-service.proto
-	sed -i 's/import ensemble_service_pb2 as ensemble__service__pb2/from . import ensemble_service_pb2 as ensemble__service__pb2/' ./python/ensemble_operator/protos/ensemble_service_pb2_grpc.py
-
 # CONTAINER_TOOL defines the container tool to be used for building images.
 # Be aware that the target commands are only tested with Docker which is
 # scaffolded by default. However, you might want to replace it to use other
@@ -112,14 +102,17 @@ help: ## Display this help.
 
 ##@ Protos
 
+# You can use make protoc to download proto
 .PHONY: protoc
 protoc: $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
 	GOBIN=$(LOCALBIN) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
 
-# You can use make protoc to download proto
+# This (when run) retrieves the latest protocol buffer definitions from ensemble-python
 .PHONY: proto
 proto: protoc
+	rm -rf protos/ensemble-service.proto
+	wget -q -O protos/ensemble-service.proto https://raw.githubusercontent.com/converged-computing/ensemble-python/refs/heads/main/protos/ensemble-service.proto
 	PATH=$(LOCALBIN):${PATH} protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative protos/ensemble-service.proto
 
 ##@ Development
@@ -189,11 +182,11 @@ lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
 
 .PHONY: build
 build: manifests generate fmt vet ## Build manager binary.
-	go build -o bin/manager cmd/main.go
+	go build -o bin/manager cmd/manager/manager.go
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./cmd/main.go
+	go run ./cmd/manager/manager.go
 
 # If you wish to build the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64). However, you must enable docker buildKit for it.
@@ -290,7 +283,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v5.2.1
-CONTROLLER_TOOLS_VERSION ?= v0.13.0
+CONTROLLER_TOOLS_VERSION ?= v0.14.0
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.

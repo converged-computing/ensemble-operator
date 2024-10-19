@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	api "github.com/converged-computing/ensemble-operator/api/v1alpha1"
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
@@ -11,6 +12,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+)
+
+var (
+	// Assume the user chose the wrong view, and install python3 cffi
+	preCommand = `
+apt-get update && apt-get install -y python3-cffi || yum update && yum install -y python3-cffi
+python3 -m pip install ensemble-python || echo "please install ensemble-python"
+`
 )
 
 // ensureMiniClusterEnsemble ensures that the ensemle is created!
@@ -87,7 +96,7 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	newSize := size + scale
 	if newSize < 1 {
 		fmt.Printf("        Ignoring scaling event, new size %d is < 1\n", newSize)
-		return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
+		return ctrl.Result{}, err
 	}
 	if newSize <= mc.Spec.MaxSize {
 		fmt.Printf("        Updating size from %d to %d\n", size, newSize)
@@ -104,7 +113,7 @@ func (r *EnsembleReconciler) updateMiniClusterSize(
 	}
 
 	// Check again in the allotted time
-	return ctrl.Result{RequeueAfter: ensemble.RequeueAfter()}, err
+	return ctrl.Result{}, err
 }
 
 // newMiniCluster creates a new ensemble minicluster
@@ -118,25 +127,36 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// The size should be set to the desired size
 	spec.ObjectMeta = metav1.ObjectMeta{Name: name, Namespace: ensemble.Namespace}
 
-	// Assign the first container as the flux runners (assuming one for now)
-	spec.Spec.Containers[0].RunFlux = true
+	// Ensure the service name is the ensemble name so the ensemble service
+	// can share it too!
+	spec.Spec.Network = minicluster.Network{HeadlessName: ensemble.Name}
 
-	// All clusters are interactive because we expect to be submitting jobs
-	spec.Spec.Interactive = true
-
-	// Start command for ensemble grpc service
-	command := fmt.Sprintf(postCommand, member.Sidecar.Port, member.Sidecar.Workers)
-
-	// Create a new container for the flux metrics API to run, this will communicate with our grpc
-	sidecar := minicluster.MiniClusterContainer{
-		Name:       "api",
-		Image:      member.Sidecar.Image,
-		PullAlways: member.Sidecar.PullAlways,
-		Commands: minicluster.Commands{
-			Post: command,
-		},
+	// Files to mount from configMap
+	items := map[string]string{
+		ensembleYamlName: ensembleYamlName,
 	}
-	spec.Spec.Containers = append(spec.Spec.Containers, sidecar)
+
+	// Add the config map as a volume to the main container
+	container := spec.Spec.Containers[0]
+	volume := minicluster.ContainerVolume{
+		ConfigMapName: ensemble.Name,
+		Path:          "/ensemble-entrypoint",
+		Items:         items,
+	}
+	container.Volumes = map[string]minicluster.ContainerVolume{ensemble.Name: volume}
+	container.RunFlux = true
+
+	// Install ensemble via python
+	container.Commands = minicluster.Commands{
+		Pre: preCommand,
+	}
+
+	// TODO this needs to know how to interact with the grpc
+	// we probably need to get the headless service name
+	// and provide to the minicluster
+	ensembleYamlPath := filepath.Join(ensembleYamlDirName, ensembleYamlName)
+	container.Command = fmt.Sprintf("ensemble run %s", ensembleYamlPath)
+	spec.Spec.Containers[0] = container
 	fmt.Println(spec.Spec)
 	ctrl.SetControllerReference(ensemble, spec, r.Scheme)
 	return spec
