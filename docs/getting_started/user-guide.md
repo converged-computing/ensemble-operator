@@ -53,5 +53,6 @@ While we could hard code examples here, we recommend that you follow one of own 
 Apologies this is a bit sparse at the moment - the project is new!
 
  - [hello-world](https://github.com/converged-computing/ensemble-operator/tree/main/examples/hello-world).
+ - [grow-shrink](https://github.com/converged-computing/ensemble-operator/tree/main/examples/grow-shrink).
 
 More coming soon! If you would like to request an example, please [let us know](https://github.com/converged-computing/ensemble-operator/issues).

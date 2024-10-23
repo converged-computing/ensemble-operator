@@ -57,6 +57,11 @@ spec:
                     A member of the ensemble that will run for some number of times,
                     optionally with a maximum or minumum
                   properties:
+                    branch:
+                      description: |-
+                        Branch
+                        Instead of pip, install a specific branch of ensemble python
+                      type: string
                     ensemble:
                       description: Ensemble yaml (configuration file)
                       type: string
@@ -967,12 +972,12 @@ spec:
                       Baseimage for the sidecar that will monitor the queue.
                       Ensure that the operating systems match!
                     type: string
+                  imagePullPolicy:
+                    description: Sidecar image pull policy
+                    type: string
                   port:
                     default: "50051"
                     type: string
-                  pullAlways:
-                    description: Always pull the sidecar container (useful for development)
-                    type: boolean
                   workers:
                     default: 10
                     format: int32
@@ -1057,6 +1062,42 @@ metadata:
   name: ensemble-operator-manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - apps
   resources:
   - deployments
@@ -1117,6 +1158,18 @@ rules:
   - update
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ensemble.flux-framework.org
   resources:
   - ensembles
@@ -1164,6 +1217,30 @@ rules:
   - flux-framework.org
   resources:
   - miniclusters/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
   verbs:
   - create
   - delete

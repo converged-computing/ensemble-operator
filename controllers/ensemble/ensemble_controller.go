@@ -23,6 +23,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -56,6 +57,13 @@ type EnsembleReconciler struct {
 //+kubebuilder:rbac:groups=core,resources=pods/exec,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch;create;update;patch;delete
 
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+
+//+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
@@ -129,23 +137,6 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 			}
 		}
 	}
-
-	// When we have all ensembles, ensure they are initialized
-	// I'm assuming here these queries might also be member-specific
-	for i, member := range ensemble.Spec.Members {
-
-		// This indicates the ensemble member is a MiniCluster
-		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
-			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
-			fmt.Printf("      Initializing member %s\n", name)
-			//			result, err := r.setupMiniClusterEnsemble(ctx, name, &ensemble, &member, i)
-
-			// An error is likely not being ready, so we keep trying
-			if err != nil {
-				return result, err
-			}
-		}
-	}
 	fmt.Println("      Ensemble is Ready!")
 
 	// If we've run updates across them, should requeue per preference of ensemble check frequency
@@ -157,7 +148,11 @@ func (r *EnsembleReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&api.Ensemble{}).
 		Owns(&minicluster.MiniCluster{}).
+		Owns(&corev1.Service{}).
+		Owns(&corev1.ServiceAccount{}).
+		Owns(&rbacv1.RoleBinding{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.ConfigMap{}).
+		Owns(&rbacv1.Role{}).
 		Complete(r)
 }

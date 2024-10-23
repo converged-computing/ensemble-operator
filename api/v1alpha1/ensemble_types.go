@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	minicluster "github.com/flux-framework/flux-operator/api/v1alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,10 +26,8 @@ import (
 
 var (
 	defaultSidecarbase = "ghcr.io/converged-computing/ensemble-python:latest"
-	defaultFluxView    = "ghcr.io/converged-computing/flux-view-ubuntu:tag-jammy"
-
-	MiniclusterType = "minicluster"
-	UnknownType     = "unknown"
+	MiniclusterType    = "minicluster"
+	UnknownType        = "unknown"
 )
 
 // EnsembleSpec defines the desired state of Ensemble
@@ -52,6 +49,11 @@ type Member struct {
 	// +optional
 	MiniCluster minicluster.MiniCluster `json:"minicluster,omitempty"`
 
+	// Branch
+	// Instead of pip, install a specific branch of ensemble python
+	// +optional
+	Branch string `json:"branch"`
+
 	// Ensemble yaml (configuration file)
 	Ensemble string `json:"ensemble"`
 }
@@ -65,9 +67,9 @@ type Sidecar struct {
 	// +optional
 	Image string `json:"image"`
 
-	// Always pull the sidecar container (useful for development)
+	// Sidecar image pull policy
 	// +optional
-	PullAlways bool `json:"pullAlways"`
+	ImagePullPolicy string `json:"imagePullPolicy"`
 
 	// +kubebuilder:default="50051"
 	// +default="50051"
@@ -121,17 +123,14 @@ func (e *Ensemble) Validate() error {
 		e.Spec.Sidecar.Image = defaultSidecarbase
 	}
 
-	// If the sidecar has a digest it's OK, but remove for check
-	sidecar := e.Spec.Sidecar.Image
-	if strings.Contains(sidecar, "@") {
-		parts := strings.Split(sidecar, "@")
-		sidecar = parts[0]
-	}
-
 	fmt.Printf("      Ensemble.Sidecar.Image: %s\n", e.Spec.Sidecar.Image)
 	fmt.Printf("      Ensemble.Sidecar.Port: %s\n", e.Spec.Sidecar.Port)
-	fmt.Printf("      Ensemble.Sidecar.PullAlways: %v\n", e.Spec.Sidecar.PullAlways)
+	if e.Spec.Sidecar.ImagePullPolicy != "" {
+		fmt.Printf("      Ensemble.Sidecar.ImagePullPolicy: %v\n", e.Spec.Sidecar.ImagePullPolicy)
+	}
 
+	// TODO stopped here - make interactive cluster with grpc running, shell in, and test
+	// client.
 	count := 0
 	for i, member := range e.Spec.Members {
 

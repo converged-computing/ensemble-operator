@@ -20,6 +20,15 @@ var (
 apt-get update && apt-get install -y python3-cffi || yum update && yum install -y python3-cffi
 python3 -m pip install ensemble-python || echo "please install ensemble-python"
 `
+
+	// Custom install from a branch
+	branchPreCommand = `
+apt-get update && apt-get install -y python3-cffi git || yum update && yum install -y python3-cffi git
+git clone -b %s --depth 1 https://github.com/converged-computing/ensemble-python.git /tmp/ensemble-python
+cd /tmp/ensemble-python
+python3 -m pip install . || echo "please install ensemble-python"
+cd -
+`
 )
 
 // ensureMiniClusterEnsemble ensures that the ensemle is created!
@@ -40,7 +49,17 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 	// Create a new job if it does not exist
 	if err != nil {
 		if errors.IsNotFound(err) {
-			mc := r.newMiniCluster(name, ensemble, member, spec)
+
+			// We first need the address of the grpc service
+			// if this fails, we try again - it might not be ready
+			ipAddress, err := r.getServiceAddress(ctx, ensemble, name)
+			if err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+
+			// The address si given to the minicluster start command
+			// The MiniCluster queue communicates to it for grow/shrink requests
+			mc := r.newMiniCluster(name, ensemble, member, spec, ipAddress)
 			fmt.Println("      Creating a new Ensemble MiniCluster")
 			err = r.Create(ctx, mc)
 			if err != nil {
@@ -122,6 +141,7 @@ func (r *EnsembleReconciler) newMiniCluster(
 	ensemble *api.Ensemble,
 	member *api.Member,
 	spec *minicluster.MiniCluster,
+	host string,
 ) *minicluster.MiniCluster {
 
 	// The size should be set to the desired size
@@ -145,17 +165,24 @@ func (r *EnsembleReconciler) newMiniCluster(
 	}
 	container.Volumes = map[string]minicluster.ContainerVolume{ensemble.Name: volume}
 	container.RunFlux = true
+	container.Launcher = true
 
-	// Install ensemble via python
-	container.Commands = minicluster.Commands{
-		Pre: preCommand,
+	command := preCommand
+	if member.Branch != "" {
+		command = fmt.Sprintf(branchPreCommand, member.Branch)
 	}
+	// Install ensemble via python, either from pip or github
+	container.Commands = minicluster.Commands{Pre: command}
 
-	// TODO this needs to know how to interact with the grpc
-	// we probably need to get the headless service name
-	// and provide to the minicluster
+	// Note that we aren't creating a headless service so that the different members are isolated.
+	// Otherwise they would all be on the same service address, which might get ugly.
 	ensembleYamlPath := filepath.Join(ensembleYamlDirName, ensembleYamlName)
-	container.Command = fmt.Sprintf("ensemble run %s", ensembleYamlPath)
+	prefix := "ensemble run --executor minicluster --host"
+	container.Command = fmt.Sprintf("%s %s --port %s --name %s %s",
+		prefix, host,
+		ensemble.Spec.Sidecar.Port, ensemble.Name,
+		ensembleYamlPath,
+	)
 	spec.Spec.Containers[0] = container
 	fmt.Println(spec.Spec)
 	ctrl.SetControllerReference(ensemble, spec, r.Scheme)
