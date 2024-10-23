@@ -7,12 +7,6 @@ installed with pip.
 
 See [docs](docs) for the user guide, and description of the [design](docs/design.md) above. Previously we had algorithms, and now the design is more flexible to accept a set of jobs that are governed by rules (triggers and actions) akin to a state machine. These rules in and of themselves make up a custom algorithm for the work that you want to be done.
 
-**Important** This operator is in the midst of a refactor, and not production quality yet. Please come back soon.
-
-## TODO
-
-- next step is to write the specific minicluster ensemble endpoint that has grow/shrink
-
 ## License
 
 HPCIC DevTools is distributed under the terms of the MIT license.
