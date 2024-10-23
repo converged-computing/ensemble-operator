@@ -20,11 +20,9 @@ import (
 )
 
 // getDeploymentAddress gets the address of the deployment
-// Note that this assumes we have one container running (and one address)
-func (r *EnsembleReconciler) getServiceAddress(
+func (r *EnsembleReconciler) getDeploymentAddress(
 	ctx context.Context,
 	ensemble *api.Ensemble,
-	name string,
 ) (string, error) {
 
 	// The MiniCluster service is being provided by the index 0 pod, so we can find it here.
@@ -69,6 +67,44 @@ func (r *EnsembleReconciler) getServiceAddress(
 	if ipAddress == "" {
 		fmt.Println("      No pods found")
 		return "", fmt.Errorf("no pods found, not ready yet")
+	}
+	return ipAddress, nil
+}
+
+// getServiceAddress gets the service ClusterIP serving the grpc endpoint
+func (r *EnsembleReconciler) getServiceAddress(
+	ctx context.Context,
+	ensemble *api.Ensemble,
+) (string, error) {
+
+	// The MiniCluster service is being provided by the index 0 pod, so we can find it here.
+	clientset, err := kubernetes.NewForConfig(r.RESTConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// List all services with this name (just the one!)
+	services, err := clientset.CoreV1().Services(ensemble.Namespace).List(
+		ctx,
+		metav1.ListOptions{
+			FieldSelector: "metadata.name=" + ensemble.ServiceName(),
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	// Get the ip address of the first (only for now) pod
+	var ipAddress string
+	for _, svc := range services.Items {
+		ipAddress = svc.Spec.ClusterIP
+		break
+	}
+
+	// If we don't have an ip address yet, try again later
+	if ipAddress == "" {
+		fmt.Println("      No grpc services found")
+		return "", fmt.Errorf("no grpc services found, not ready yet")
 	}
 	return ipAddress, nil
 }
@@ -146,10 +182,11 @@ func (r *EnsembleReconciler) createRole(
 					{
 						APIGroups: []string{"flux-framework.org"},
 						Resources: []string{"miniclusters"},
-						Verbs:     []string{"get", "list", "create", "update", "delete"},
+						Verbs:     []string{"get", "list", "create", "update", "delete", "patch"},
 					},
 				},
 			}
+
 			ctrl.SetControllerReference(ensemble, role, r.Scheme)
 			err = r.Create(ctx, role)
 			if err != nil {
@@ -212,37 +249,42 @@ func (r *EnsembleReconciler) createRoleBinding(
 
 }
 
+// createService creates the service for the grpc
+// This is used to expose the port to the cluster
+// TODO stopped here - bring up interactive and debug grpc (it worked before)
 func (r *EnsembleReconciler) createService(
 	ctx context.Context,
 	ensemble *api.Ensemble,
 ) (ctrl.Result, error) {
-
-	serviceName := fmt.Sprintf("%s-grpc", ensemble.Name)
 
 	// First see if we already have it!
 	svc := &corev1.Service{}
 	err := r.Get(
 		ctx,
 		types.NamespacedName{
-			Name:      serviceName,
+			Name:      ensemble.ServiceName(),
 			Namespace: ensemble.Namespace,
 		},
 		svc,
 	)
 
-	// Deployment labels to match for service
-	appLabels := getDeploymentLabels(ensemble)
-	port, err := strconv.Atoi(ensemble.Spec.Sidecar.Port)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	// If we haven't found it, create it
 	if err != nil {
 		if errors.IsNotFound(err) {
+
+			// Deployment labels to match for service
+			appLabels := getDeploymentLabels(ensemble)
+			port, err := strconv.Atoi(ensemble.Spec.Sidecar.Port)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
 			svc = &corev1.Service{
-				TypeMeta:   metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{Name: serviceName, Namespace: ensemble.Namespace},
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ensemble.ServiceName(),
+					Namespace: ensemble.Namespace,
+				},
 				Spec: corev1.ServiceSpec{
 					Ports: []corev1.ServicePort{
 						{
@@ -271,7 +313,7 @@ func (r *EnsembleReconciler) createService(
 	}
 	// We already have the service account, no error
 	// and continue to next thing.
-	return ctrl.Result{}, nil
+	return ctrl.Result{Requeue: true}, nil
 }
 
 // ensureEnsembleService creates the deployment to run the ensemble service
@@ -389,6 +431,7 @@ func (r *EnsembleReconciler) newEnsembleDeployment(ensemble *api.Ensemble) (*app
 	command := []string{
 		"ensemble-server",
 		"start",
+		"--kubernetes",
 		"--host", "0.0.0.0",
 		"--port", ensemble.Spec.Sidecar.Port,
 		"--workers", workers,
@@ -411,7 +454,9 @@ func (r *EnsembleReconciler) newEnsembleDeployment(ensemble *api.Ensemble) (*app
 					Labels: appLabels,
 				},
 				Spec: corev1.PodSpec{
-					Subdomain:          ensemble.Name,
+
+					// This needs to match the service name
+					Subdomain:          ensemble.ServiceName(),
 					ServiceAccountName: ensemble.Name,
 					Containers: []corev1.Container{
 						{

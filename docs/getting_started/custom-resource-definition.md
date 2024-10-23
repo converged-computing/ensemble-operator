@@ -129,8 +129,7 @@ spec:
 #### Sidecar
 
 The sidecar is where the gRPC service (deployment) runs alongside the members. You can customize options related
-to this deployment, although you likely don't need to. I find this useful for development (e.g., using a development container
-and asking to pull always). These are the options available:
+to this deployment, although you likely don't need to. I find this useful for development (e.g., using a development container and asking to pull always). These are the options available:
 
 
 ```yaml
@@ -163,7 +162,6 @@ Members is a list of members to add to your ensemble. In the future this could s
 but for now we are focusing on Flux Operator MiniCluster, which has a nice setup to allow for a sidecar container
 to monitor the Flux queue, doing everything from submitting jobs to reporting status. This is a list, so you
 could have two MiniCluster types, for example, that have different resources. For each member, you can define the following:
-
 ##### Ensemble
 
 The ensemble section is a text chunk that should coincide with the ensemble.yaml that is described by ensemble-python. It will create a config map that is mapped as a volume to run the ensemble.
@@ -178,3 +176,15 @@ start the MiniCluster in interactive mode.
 
 Note that for sidecar images, we provide automated builds for two versions of each of rocky and ubuntu.
 You can find them [here](https://github.com/converged-computing/ensemble-operator/pkgs/container/ensemble-operator-api).
+
+##### Branch
+
+If you want to test a development branch of ensemble-python, you can specify it alongside your minicluster / ensemble.
+For example:
+
+```yaml
+  # Install ensemble python from this branch instead of pip (for development)
+  - branch: add-support-minicluster-autoscale
+    minicluster:
+      ...
+```

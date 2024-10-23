@@ -102,9 +102,9 @@ func (m *Member) Size() int32 {
 	return 0
 }
 
-//func (e *Ensemble) RequeueAfter() time.Duration {
-//	return time.Duration(time.Duration(e.Spec.CheckSeconds) * time.Second)
-//}
+func (e *Ensemble) ServiceName() string {
+	return fmt.Sprintf("%s-grpc", e.Name)
+}
 
 // Validate ensures we have data that is needed, and sets defaults if needed
 func (e *Ensemble) Validate() error {

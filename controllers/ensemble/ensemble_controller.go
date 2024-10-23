@@ -122,15 +122,16 @@ func (r *EnsembleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		// This indicates the ensemble member is a MiniCluster
 		if !reflect.DeepEqual(member.MiniCluster, minicluster.MiniClusterSpec{}) {
 
+			// Name is the index + ensemble name
+			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
+
 			// Create the config map volume (the ensemble.yaml)
 			// for the MiniCluster to run as the entrypoint
-			result, err := r.ensureEnsembleConfig(ctx, &ensemble, &member)
+			result, err := r.ensureEnsembleConfig(ctx, name, &ensemble, &member)
 			if err != nil {
 				return result, err
 			}
 
-			// Name is the index + ensemble name
-			name := fmt.Sprintf("%s-%d", ensemble.Name, i)
 			result, err = r.ensureMiniClusterEnsemble(ctx, name, &ensemble, &member)
 			if err != nil {
 				return result, err

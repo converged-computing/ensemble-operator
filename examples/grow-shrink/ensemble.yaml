@@ -12,16 +12,13 @@ spec:
 
   members:
 
-  # Install ensemble python from this branch instead of pip (for development)
-  - branch: add-support-minicluster-autoscale
-    
-    # The MiniCluster that will run the ensemble
-    minicluster:
+   # The MiniCluster that will run the ensemble
+  - minicluster:
       spec:
         size: 1
         minSize: 1
         maxSize: 16
-        
+
         # uncomment to make interactive and debug
         # interactive: true
 
@@ -48,6 +45,11 @@ spec:
         heartbeat: 3
 
       jobs:
+        - name: sleep
+          command: sleep 10
+          count: 1
+          nodes: 1
+
         - name: echo
           command: echo hello world
           count: 5
@@ -58,10 +60,6 @@ spec:
         - name: sleep-long
           command: sleep 100
           count: 2
-          nodes: 1
-        - name: sleep
-          command: sleep 10
-          count: 1
           nodes: 1
 
       rules:
@@ -88,16 +86,19 @@ spec:
             repetitions: 5
 
         # When the pending time of sleep is > 5 seconds, grow the cluster.
+        # The default "value" here is 1 (to grow by), but we allow grow to 
+        # happen 3 times.
         - trigger: metric
           name: mean.sleep-long-pending
           when: "> 5"
           action:
             name: grow
+            repetitions: 5
+            backoff: 2
 
-        # Terminate the ensemble when we have 2 successful of echo-again
-        # If you don't terminate the ensemble, the queue will keep waiting
-        #- trigger: metric
-        #  name: count.echo-again.success
-        #  when: 10
-        #  action:
-        #    name: terminate
+        # Terminate the ensemble when we have 10 successful long sleep runs
+        - trigger: metric
+          name: count.sleep-long.success
+          when: 10
+          action:
+            name: terminate

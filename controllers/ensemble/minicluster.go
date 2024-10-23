@@ -52,7 +52,7 @@ func (r *EnsembleReconciler) ensureMiniClusterEnsemble(
 
 			// We first need the address of the grpc service
 			// if this fails, we try again - it might not be ready
-			ipAddress, err := r.getServiceAddress(ctx, ensemble, name)
+			ipAddress, err := r.getServiceAddress(ctx, ensemble)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
@@ -96,45 +96,6 @@ func (r *EnsembleReconciler) getExistingMiniCluster(
 	return existing, err
 }
 
-// updateMiniCluster size gets its current size from the status and updated
-// if it is valid
-func (r *EnsembleReconciler) updateMiniClusterSize(
-	ctx context.Context,
-	ensemble *api.Ensemble,
-	scale int32,
-	name string,
-) (ctrl.Result, error) {
-
-	mc, err := r.getExistingMiniCluster(ctx, name, ensemble)
-
-	// Check the size against what we have
-	size := mc.Spec.Size
-
-	// We can only scale if we are left with at least one node
-	// If we want to scale to 0, this should be a termination event
-	newSize := size + scale
-	if newSize < 1 {
-		fmt.Printf("        Ignoring scaling event, new size %d is < 1\n", newSize)
-		return ctrl.Result{}, err
-	}
-	if newSize <= mc.Spec.MaxSize {
-		fmt.Printf("        Updating size from %d to %d\n", size, newSize)
-		mc.Spec.Size = newSize
-
-		// TODO: this will trigger reconcile. Can we set the time?
-		err = r.Update(ctx, mc)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-	} else {
-		fmt.Printf("        Ignoring scaling event %d to %d, outside allowed boundary\n", size, newSize)
-	}
-
-	// Check again in the allotted time
-	return ctrl.Result{}, err
-}
-
 // newMiniCluster creates a new ensemble minicluster
 func (r *EnsembleReconciler) newMiniCluster(
 	name string,
@@ -159,11 +120,11 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// Add the config map as a volume to the main container
 	container := spec.Spec.Containers[0]
 	volume := minicluster.ContainerVolume{
-		ConfigMapName: ensemble.Name,
+		ConfigMapName: name,
 		Path:          "/ensemble-entrypoint",
 		Items:         items,
 	}
-	container.Volumes = map[string]minicluster.ContainerVolume{ensemble.Name: volume}
+	container.Volumes = map[string]minicluster.ContainerVolume{name: volume}
 	container.RunFlux = true
 	container.Launcher = true
 
@@ -177,10 +138,10 @@ func (r *EnsembleReconciler) newMiniCluster(
 	// Note that we aren't creating a headless service so that the different members are isolated.
 	// Otherwise they would all be on the same service address, which might get ugly.
 	ensembleYamlPath := filepath.Join(ensembleYamlDirName, ensembleYamlName)
-	prefix := "ensemble run --executor minicluster --host"
+	prefix := "ensemble run --kubernetes --executor minicluster --host"
 	container.Command = fmt.Sprintf("%s %s --port %s --name %s %s",
 		prefix, host,
-		ensemble.Spec.Sidecar.Port, ensemble.Name,
+		ensemble.Spec.Sidecar.Port, name,
 		ensembleYamlPath,
 	)
 	spec.Spec.Containers[0] = container

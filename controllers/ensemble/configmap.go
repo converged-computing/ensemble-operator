@@ -39,6 +39,7 @@ var (
 // getConfigMap gets the entrypoint config map
 func (r *EnsembleReconciler) ensureEnsembleConfig(
 	ctx context.Context,
+	name string,
 	ensemble *api.Ensemble,
 	member *api.Member,
 ) (ctrl.Result, error) {
@@ -49,7 +50,7 @@ func (r *EnsembleReconciler) ensureEnsembleConfig(
 	err := r.Get(
 		ctx,
 		types.NamespacedName{
-			Name:      ensemble.Name,
+			Name:      name,
 			Namespace: ensemble.Namespace,
 		},
 		existing,
@@ -61,7 +62,7 @@ func (r *EnsembleReconciler) ensureEnsembleConfig(
 		if errors.IsNotFound(err) {
 
 			// Finally create the config map
-			cm := r.createConfigMap(ensemble, member)
+			cm := r.createConfigMap(ensemble, member, name)
 			r.Log.Info("✨ Creating Ensemble YAML ✨")
 			err = r.Create(ctx, cm)
 			if err != nil {
@@ -80,7 +81,11 @@ func (r *EnsembleReconciler) ensureEnsembleConfig(
 }
 
 // createConfigMap generates a config map with some kind of data
-func (r *EnsembleReconciler) createConfigMap(ensemble *api.Ensemble, member *api.Member) *corev1.ConfigMap {
+func (r *EnsembleReconciler) createConfigMap(
+	ensemble *api.Ensemble,
+	member *api.Member,
+	name string,
+) *corev1.ConfigMap {
 
 	data := map[string]string{
 		ensembleYamlName: member.Ensemble,
@@ -88,7 +93,7 @@ func (r *EnsembleReconciler) createConfigMap(ensemble *api.Ensemble, member *api
 	cm := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ensemble.Name,
+			Name:      name,
 			Namespace: ensemble.Namespace,
 		},
 		Data: data,
