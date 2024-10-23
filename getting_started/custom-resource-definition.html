@@ -33,7 +33,7 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
-        <link rel="stylesheet" type="text/css" href="../_static/sphinx_immaterial_theme.359ec555e2989f00f.min.css?v=379f618b" />
+        <link rel="stylesheet" type="text/css" href="../_static/sphinx_immaterial_theme.4b4a8c74e2ff2ab5b.min.css?v=906e2c53" />
         <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=d68d0989" />
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -391,21 +391,6 @@
   
   
     <li class="md-nav__item">
-      <a href="algorithms.html" class="md-nav__link">
-        <span title="/getting_started/algorithms.md (reference label)" class="md-ellipsis">Algorithm Design</span>
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="design.html" class="md-nav__link">
         <span title="/getting_started/design.md (reference label)" class="md-ellipsis">Design</span>
       </a>
@@ -468,15 +453,8 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#checkseconds" class="md-nav__link">
-    <span title="/getting_started/custom-resource-definition.md#checkseconds (reference label)" class="md-ellipsis">Check<wbr>Seconds</span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#algorithm" class="md-nav__link">
-    <span title="/getting_started/custom-resource-definition.md#algorithm (reference label)" class="md-ellipsis">Algorithm</span>
+  <a href="#sidecar" class="md-nav__link">
+    <span title="/getting_started/custom-resource-definition.md#sidecar (reference label)" class="md-ellipsis">Sidecar</span>
   </a>
   
 </li>
@@ -490,6 +468,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#id1" class="md-nav__link">
+    <span title="/getting_started/custom-resource-definition.md#id1 (reference label)" class="md-ellipsis">Ensemble</span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#minicluster" class="md-nav__link">
     <span title="/getting_started/custom-resource-definition.md#minicluster (reference label)" class="md-ellipsis">Mini<wbr>Cluster</span>
   </a>
@@ -497,22 +482,8 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#sidecar" class="md-nav__link">
-    <span title="/getting_started/custom-resource-definition.md#sidecar (reference label)" class="md-ellipsis">Sidecar</span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#jobs" class="md-nav__link">
-    <span title="/getting_started/custom-resource-definition.md#jobs (reference label)" class="md-ellipsis">Jobs</span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#member-algorithm" class="md-nav__link">
-    <span title="/getting_started/custom-resource-definition.md#member-algorithm (reference label)" class="md-ellipsis">Member Algorithm</span>
+  <a href="#branch" class="md-nav__link">
+    <span title="/getting_started/custom-resource-definition.md#branch (reference label)" class="md-ellipsis">Branch</span>
   </a>
   
 </li>
@@ -650,48 +621,41 @@ looks at the cluster state, and does whatever is necessary to get your cluster s
 to match your request. In the case of the Ensemble Operator, this means creating the resources
 for an Ensemble. This document describes the spec of our custom resource definition.</p>
 <h2 id="custom-resource-definition">Custom Resource Definition<a class="headerlink" href="#custom-resource-definition" title="Link to this heading">¶</a></h2>
-<p>The custom resource definition is a YAML file that holds the options you can define. Let’s look at an example for running LAMMPS
-with the currently available algorithm “workload-demand” - the file is annotated to provide detail to each section, which is also provided below.</p>
+<p>The custom resource definition is a YAML file that holds the options you can define. Let’s look at the hello-world example that will submit different groups of jobs. Specifically:</p>
+<ol class="arabic simple">
+<li><p>Submit a sleep job when the ensemble starts.</p></li>
+<li><p>When the sleep job is successful, submit 5 echo jobs</p></li>
+<li><p>Submit echo-again each time we have a single echo job finish (this means the rule will trigger 5 times)</p></li>
+<li><p>When we have 10 echo-again finish (since the above is 5*2) terminate!</p></li>
+</ol>
+<p>Note that if you don’t have a terminate action, the ensemble will not terminate. If you don’t specify repetitions for a job event (e.g., <code class="docutils literal notranslate"><span class="pre">job-finish</span></code>) it assumes 1.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensemble.flux-framework.org/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ensemble</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-demand</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensemble</span>
 <span class="nt">spec</span><span class="p">:</span>
 
-<span class="w">  </span><span class="c1"># Each ensemble can hold one or more members.</span>
-<span class="w">  </span><span class="c1"># The only valid member type is currently a Flux Operator MiniCluster</span>
+<span class="w">  </span><span class="c1"># This is how you change the sidcar image, if needed. This is the one</span>
+<span class="w">  </span><span class="c1"># that I push and use for development. Pull always ensures we get latest</span>
+<span class="w">  </span><span class="nt">sidecar</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">pullAlways</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/converged-computing/ensemble-python:latest</span>
+
 <span class="w">  </span><span class="nt">members</span><span class="p">:</span>
 
-<span class="w">  </span><span class="c1"># The member sidecar is where the ensemble sidecar gRPC service will be running</span>
-<span class="w">  </span><span class="c1"># For the MiniCluster, this sidecar will have full access to the Flux queue</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sidecar</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">pullAlways</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/converged-computing/ensemble-operator-api:rockylinux9-test</span>
-
-<span class="w">    </span><span class="c1"># The algorithm you choose for a member determines behavior for scaling, termination,</span>
-<span class="w">    </span><span class="c1"># and even submitting jobs. Each algorithm has its own set of options</span>
-<span class="w">    </span><span class="nt">algorithm</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-demand</span>
-<span class="w">      </span><span class="nt">options</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">disableTermination</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yes&quot;</span>
-
-<span class="w">    </span><span class="c1"># This is your jobs matrix. These are submit by the ensemble operator via gRPC,</span>
-<span class="w">    </span><span class="c1"># and the way that is done also depends on the algorithm</span>
-<span class="w">    </span><span class="nt">jobs</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lammps-2</span>
-<span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite</span>
-<span class="w">        </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lammps-4</span>
-<span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lmp -v x 4 -v y 4 -v z 4 -in in.reaxc.hns -nocite</span>
-<span class="w">        </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-
-<span class="w">    </span><span class="c1"># This is a full MiniCluster CRD, directly from the Flux Operator!</span>
-<span class="w">    </span><span class="c1"># If you don&#39;t set a maxSize it defaults to size</span>
-<span class="w">    </span><span class="nt">minicluster</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># The MiniCluster that will run the ensemble</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">minicluster</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-<span class="w">        </span><span class="nt">maxSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="w">        </span><span class="nt">minSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">        </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">        </span><span class="nt">minSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">        </span><span class="nt">maxSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">16</span>
+
+<span class="w">        </span><span class="c1"># uncomment to make interactive and debug</span>
+<span class="w">        </span><span class="c1"># interactive: true</span>
+
+<span class="w">        </span><span class="c1"># The workers should not fail when they clean up</span>
+<span class="w">        </span><span class="nt">flux</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">completeWorkers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 
 <span class="w">        </span><span class="c1"># This is a list because a pod can support multiple containers</span>
 <span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
@@ -699,6 +663,61 @@ with the currently available algorithm “workload-demand” - the file is annot
 
 <span class="w">          </span><span class="c1"># You can set the working directory if your container WORKDIR is not correct.</span>
 <span class="w">          </span><span class="nt">workingDir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/opt/lammps/examples/reaxff/HNS</span>
+<span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+
+<span class="w">    </span><span class="c1"># The ensemble configuration file (what is provided to ensemble python)</span>
+<span class="w">    </span><span class="nt">ensemble</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">      </span><span class="no">logging:</span>
+<span class="w">        </span><span class="no">debug: true</span>
+
+<span class="w">      </span><span class="no">jobs:</span>
+<span class="w">        </span><span class="no">- name: echo</span>
+<span class="w">          </span><span class="no">command: echo hello world</span>
+<span class="w">          </span><span class="no">count: 5</span>
+<span class="w">          </span><span class="no">nodes: 1</span>
+<span class="w">        </span><span class="no">- name: echo-again</span>
+<span class="w">          </span><span class="no">command: echo hello world again</span>
+<span class="w">          </span><span class="no">count: 2</span>
+<span class="w">          </span><span class="no">nodes: 1</span>
+<span class="w">        </span><span class="no">- name: sleep</span>
+<span class="w">          </span><span class="no">command: sleep 10</span>
+<span class="w">          </span><span class="no">count: 1</span>
+<span class="w">          </span><span class="no">nodes: 1</span>
+
+<span class="w">      </span><span class="no">rules:</span>
+<span class="w">        </span><span class="no"># 1. This rule says to submit the sleep jobs when we start</span>
+<span class="w">        </span><span class="no">- trigger: start</span>
+<span class="w">          </span><span class="no">action:</span>
+<span class="w">            </span><span class="no">name: submit</span>
+<span class="w">            </span><span class="no">label: sleep</span>
+
+<span class="w">        </span><span class="no">- trigger: metric</span>
+<span class="w">          </span><span class="no">name: count.sleep.success</span>
+<span class="w">          </span><span class="no">when: 1</span>
+<span class="w">          </span><span class="no">action:</span>
+<span class="w">            </span><span class="no">name: submit</span>
+<span class="w">            </span><span class="no">label: echo</span>
+
+<span class="w">        </span><span class="no"># When we have a successful echo job, submit echo again</span>
+<span class="w">        </span><span class="no"># Do this 5 times (repetitions), otherwise it will just run once</span>
+<span class="w">        </span><span class="no">- trigger: job-finish</span>
+<span class="w">          </span><span class="no">name: echo</span>
+<span class="w">          </span><span class="no">action:</span>
+<span class="w">            </span><span class="no">name: submit</span>
+<span class="w">            </span><span class="no">label: echo-again</span>
+<span class="w">            </span><span class="no">repetitions: 5</span>
+
+<span class="w">        </span><span class="no"># Terminate the ensemble when we have 2 successful of echo-again</span>
+<span class="w">        </span><span class="no"># If you don&#39;t terminate the ensemble, the queue will keep waiting</span>
+<span class="w">        </span><span class="no">- trigger: metric</span>
+<span class="w">          </span><span class="no">name: count.echo-again.success</span>
+<span class="w">          </span><span class="no">when: 10</span>
+<span class="w">          </span><span class="no">action:</span>
+<span class="w">            </span><span class="no">name: terminate</span>
 </code></pre></div>
 </div>
 <p>Now we will discuss each section in detail.</p>
@@ -711,49 +730,9 @@ with the currently available algorithm “workload-demand” - the file is annot
 <span class="nt">spec</span><span class="p">:</span>
 </code></pre></div>
 </div>
-<h4 id="checkseconds">CheckSeconds<a class="headerlink" href="#checkseconds" title="Link to this heading">¶</a></h4>
-<p>After the creation of an ensemble member, we are going to do some kind of check every N seconds. While this could
-be set on the level of the member, for the time being I am putting it at a more global level, meaning that every
-member is checked at the same frequency. This could be changed.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensemble.flux-framework.org/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ensemble</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-demand</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">members</span><span class="p">:</span>
-<span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">  </span><span class="nt">checkSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
-</code></pre></div>
-</div>
-<p>It could also be that we have (in an algorithm) an ability to change this check as we go, based on some conditions.</p>
-<h4 id="algorithm">Algorithm<a class="headerlink" href="#algorithm" title="Link to this heading">¶</a></h4>
-<p>To select a global algorithm for all members, it can be defined here. Or you can define an algorithm for some members,
-and then those that don’t have one defined use the global one as a default. Each algorithm has its own custom options,
-but here is an example:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">algorithm</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-demand</span>
-<span class="w">    </span><span class="nt">options</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">scaleUpStrategy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;randomJob&quot;</span>
-</code></pre></div>
-</div>
-<p>See <a class="reference internal" href="algorithms.html"><span class="std std-doc">algorithms</span></a> for more details about algorithms available and options for them.</p>
-<h4 id="members">Members<a class="headerlink" href="#members" title="Link to this heading">¶</a></h4>
-<p>Members is a list of members to add to your ensemble. In the future this could span different kinds of operators,
-but for now we are focusing on Flux Operator MiniCluster, which has a nice setup to allow for a sidecar container
-to monitor the Flux queue, doing everything from submitting jobs to reporting status. This is a list, so you
-could have two MiniCluster types, for example, that have different resources. At some point we might want to
-think about some kind of shared jobs matrix that can be defined at the top level of the ensemble, and have work
-assigned to different ensemble members dynamically. For each member, you can define the following:</p>
-<h5 id="minicluster">MiniCluster<a class="headerlink" href="#minicluster" title="Link to this heading">¶</a></h5>
-<p>Defining a Member.Minicluster spec assets that the member type is a MiniCluster (each member can only have one type).
-This is the example we showed above. See <a class="reference external" href="https://flux-framework.org/flux-operator/getting_started/custom-resource-definition.html">the MiniCluster definition</a>
-for the various attributes. Note that the ensemble operator is not going to use any directive for a command, because it will always
-start the MiniCluster in interactive mode.</p>
-<h5 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Link to this heading">¶</a></h5>
-<p>The sidecar is where the gRPC service runs alongside the MiniCluster (or other member). You can customize options related
-to this deployment, although you likely don’t need to. I find this useful for development (e.g., using a development container
-and asking to pull always). These are the options available:</p>
+<h4 id="sidecar">Sidecar<a class="headerlink" href="#sidecar" title="Link to this heading">¶</a></h4>
+<p>The sidecar is where the gRPC service (deployment) runs alongside the members. You can customize options related
+to this deployment, although you likely don’t need to. I find this useful for development (e.g., using a development container and asking to pull always). These are the options available:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensemble.flux-framework.org/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ensemble</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -764,54 +743,40 @@ and asking to pull always). These are the options available:</p>
 <span class="w">      </span><span class="c1"># Always pull the container</span>
 <span class="w">      </span><span class="nt">pullAlways</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 
-<span class="w">      </span><span class="c1"># Change the container base (e.g., for a different operator system)</span>
-<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/converged-computing/ensemble-operator-api:rockylinux9-test</span>
+<span class="w">      </span><span class="c1"># Change the container base (e.g., for arm)</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/converged-computing/ensemble-python:latest</span>
 
 <span class="w">      </span><span class="c1"># The port for the gRPC service, I don&#39;t see why you&#39;d need to change but maybe</span>
-<span class="w">      </span><span class="c1"># This is the default, and it is a string</span>
-<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;50051&quot;</span>
+<span class="w">      </span><span class="c1"># This is the default.</span>
+<span class="w">      </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50051</span>
 
 <span class="w">      </span><span class="c1"># Number of workers to run for service (defaults to 10)</span>
 <span class="w">      </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 </code></pre></div>
 </div>
+<h4 id="members">Members<a class="headerlink" href="#members" title="Link to this heading">¶</a></h4>
+<p>Members is a list of members to add to your ensemble. In the future this could span different kinds of operators,
+but for now we are focusing on Flux Operator MiniCluster, which has a nice setup to allow for a sidecar container
+to monitor the Flux queue, doing everything from submitting jobs to reporting status. This is a list, so you
+could have two MiniCluster types, for example, that have different resources. For each member, you can define the following:</p>
+<h5 id="id1">Ensemble<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h5>
+<p>The ensemble section is a text chunk that should coincide with the ensemble.yaml that is described by ensemble-python. It will create a config map that is mapped as a volume to run the ensemble.</p>
+<h5 id="minicluster">MiniCluster<a class="headerlink" href="#minicluster" title="Link to this heading">¶</a></h5>
+<p>Defining a Member.Minicluster spec assets that the member type is a MiniCluster (each member can only have one type).
+This is the example we showed above. See <a class="reference external" href="https://flux-framework.org/flux-operator/getting_started/custom-resource-definition.html">the MiniCluster definition</a>
+for the various attributes. Note that the ensemble operator is not going to use any directive for a command, because it will always
+start the MiniCluster in interactive mode.</p>
 <p>Note that for sidecar images, we provide automated builds for two versions of each of rocky and ubuntu.
 You can find them <a class="reference external" href="https://github.com/converged-computing/ensemble-operator/pkgs/container/ensemble-operator-api">here</a>.</p>
-<h5 id="jobs">Jobs<a class="headerlink" href="#jobs" title="Link to this heading">¶</a></h5>
-<p>Each member defines jobs to be submit in the jobs matrix. We do this because (early on) I <a class="reference external" href="https://github.com/converged-computing/ensemble-operator/issues/6">realized</a>
-requiring the user to write batch jobs with the correct setup to ask for waitable, and also to control sleeping of a worker or leader node, was really complex. A much
-simpler and better controller strategy (and one that works well with algorithms that want to control submission) is just to control all of it. We start the MiniCluster
-in interactive mode, and all requests to submit jobs come in directly from the ensemble operator. This is where the jobs matrix comes in - it is parsed and unwrapped into
-your jobs to run.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ensemble.flux-framework.org/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ensemble</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-demand</span>
-<span class="nt">spec</span><span class="p">:</span>
-
-<span class="w">  </span><span class="c1"># Each ensemble can hold one or more members.</span>
-<span class="w">  </span><span class="c1"># The only valid member type is currently a Flux Operator MiniCluster</span>
-<span class="w">  </span><span class="nt">members</span><span class="p">:</span>
-
-<span class="w">    </span><span class="c1"># This is your jobs matrix. These are submit by the ensemble operator via gRPC,</span>
-<span class="w">    </span><span class="c1"># and the way that is done also depends on the algorithm</span>
-<span class="w">    </span><span class="nt">jobs</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lammps-2</span>
-<span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lmp -v x 2 -v y 2 -v z 2 -in in.reaxc.hns -nocite</span>
-<span class="w">        </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lammps-4</span>
-<span class="w">        </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lmp -v x 4 -v y 4 -v z 4 -in in.reaxc.hns -nocite</span>
-<span class="w">        </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<h5 id="branch">Branch<a class="headerlink" href="#branch" title="Link to this heading">¶</a></h5>
+<p>If you want to test a development branch of ensemble-python, you can specify it alongside your minicluster / ensemble.
+For example:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><code><span class="w">  </span><span class="c1"># Install ensemble python from this branch instead of pip (for development)</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">branch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">add-support-minicluster-autoscale</span>
+<span class="w">    </span><span class="nt">minicluster</span><span class="p">:</span>
+<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 </code></pre></div>
 </div>
-<p>In the above, we see three named groups of jobs. You can decide how you want to group them - it could be based on an application,
-an application and problem size, or something else. When we have algorithms that train ML models we will likely need groups that are categories
-for training (e.g., predicting a runtime for a specific lammps problem size). For now, these groups are unwrapped and submit as needed,
-depending on the algorithm. For example, the reactive “workload-demand” algorithm is going to expand the matrix, randomly shuffle the jobs,
-and submit them all at the onset.  The variables should be intuitive - not shown are <code class="docutils literal notranslate"><span class="pre">workdir</span></code> that determines the working directory
-for the work, and <code class="docutils literal notranslate"><span class="pre">duration</span></code> that can set a limit for something to run.</p>
-<h5 id="member-algorithm">Member Algorithm<a class="headerlink" href="#member-algorithm" title="Link to this heading">¶</a></h5>
-<p>This directive is the same as the higher level <a class="reference internal" href="#algorithm"><span class="std std-ref">Algorithm</span></a>, but can be set on the level of the member to override some global default.</p>
 
 
   <hr>
@@ -819,7 +784,7 @@ for the work, and <code class="docutils literal notranslate"><span class="pre">d
   <small>
     
       Last update:
-      Apr 24, 2024
+      Oct 23, 2024
     
   </small>
 </div>
@@ -896,7 +861,7 @@ for the work, and <code class="docutils literal notranslate"><span class="pre">d
   
     Created using
     <a href="https://www.sphinx-doc.org/" target="_blank" rel="noopener">Sphinx</a>
-    7.3.7.
+    8.1.3.
      and
     <a href="https://github.com/jbms/sphinx-immaterial/" target="_blank" rel="noopener">Sphinx-Immaterial</a>
   

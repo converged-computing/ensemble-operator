@@ -33,7 +33,7 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
-        <link rel="stylesheet" type="text/css" href="../_static/sphinx_immaterial_theme.359ec555e2989f00f.min.css?v=379f618b" />
+        <link rel="stylesheet" type="text/css" href="../_static/sphinx_immaterial_theme.4b4a8c74e2ff2ab5b.min.css?v=906e2c53" />
         <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=d68d0989" />
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -388,21 +388,6 @@
               
   
   
-  
-  
-    <li class="md-nav__item">
-      <a href="algorithms.html" class="md-nav__link">
-        <span title="/getting_started/algorithms.md (reference label)" class="md-ellipsis">Algorithm Design</span>
-      </a>
-    </li>
-  
-
-            
-          
-            
-              
-  
-  
     
   
     
@@ -435,6 +420,20 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#current-design" class="md-nav__link">
+    <span title="/getting_started/design.md#current-design (reference label)" class="md-ellipsis">Current Design</span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-1" class="md-nav__link">
+    <span title="/getting_started/design.md#design-1 (reference label)" class="md-ellipsis">Design 1</span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#create-an-ensemble" class="md-nav__link">
@@ -594,7 +593,13 @@
   </a>
 
 <h1 id="design">Design<a class="headerlink" href="#design" title="Link to this heading">¶</a></h1>
+<h2 id="current-design">Current Design<a class="headerlink" href="#current-design" title="Link to this heading">¶</a></h2>
+<p>This current design moves the responsibility to monitor one or more ensembles from the operator to a service that is deployed alongside the members. It’s a much better design to do that, and it also has a refactored <a class="reference external" href="https://github.com/converged-computing/ensemble-python">ensemble-python</a> library that works external to the operator here (and Kubernetes in general) so you can run Ensembles alongside your workload manager a la carte!</p>
 <p><img alt="img/design.png" src="../_images/design.png" /></p>
+<p>More to come on this soon. Right now we have the ensemble running for Flux inside of Kubernetes, and I’ll be adding grow capability soon.</p>
+<h2 id="design-1">Design 1<a class="headerlink" href="#design-1" title="Link to this heading">¶</a></h2>
+<p>This was the first design. I found it problematic to put the interaction between the operator and ensemble in a sidecar to the MiniCluster, because it meant I could not easily add another member. I also found the frequency of communication between the ensemble member and operator problematic - there was too much expectation or burden on the operator to receive and respond to requests. Finally, I didn’t like that the Python library (that orchestrated the ensemble) was tied specifically to the operator. I wanted the library to work outside of it.</p>
+<p><img alt="img/design-1.png" src="../_images/design-1.png" /></p>
 <h2 id="create-an-ensemble">1. Create an Ensemble<a class="headerlink" href="#create-an-ensemble" title="Link to this heading">¶</a></h2>
 <p>We start with the creation of an Ensemble (1). If you look in <a class="reference external" href="https://github.com/converged-computing/ensemble-operator/tree/main/examples/algorithms/workload/demand">examples</a> you will see one for lammps. An ensemble custom resource definition allows you to define the specification for an entire Flux MiniCluster, meaning that (when run in batch) it is going to kick off launching a bunch of jobs to the queue, and likely they will stack up (meaning the queue will be full). This is why we use the 🥞️ emoji freely - ensembles are like pancakes! Note that you can create more than one MiniCluster per ensemble, and this is intending to support being able to run ensembles on different resources. We also intend to support other types of operators (or Kubernetes abstractions) such as a JobSet, and each will likely have a different strategy for the scaling (for example, the Flux queue can be shared with a sidecar, and other abstractions don’t even have queues, so likely we will just be twewaking the CRD definitions themselves). More on that later.</p>
 <h2 id="create-ensemble-member">2. Create Ensemble Member<a class="headerlink" href="#create-ensemble-member" title="Link to this heading">¶</a></h2>
@@ -646,7 +651,7 @@ what conditions to do the following:</p>
   <small>
     
       Last update:
-      Apr 24, 2024
+      Oct 23, 2024
     
   </small>
 </div>
@@ -677,7 +682,7 @@ what conditions to do the following:</p>
     <nav class="md-footer__inner md-grid" aria-label="Footer" >
       
         
-        <a href="algorithms.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Algorithm Design" rel="prev">
+        <a href="user-guide.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: User Guide" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
           </div>
@@ -686,7 +691,7 @@ what conditions to do the following:</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Algorithm Design
+              User Guide
             </div>
           </div>
         </a>
@@ -723,7 +728,7 @@ what conditions to do the following:</p>
   
     Created using
     <a href="https://www.sphinx-doc.org/" target="_blank" rel="noopener">Sphinx</a>
-    7.3.7.
+    8.1.3.
      and
     <a href="https://github.com/jbms/sphinx-immaterial/" target="_blank" rel="noopener">Sphinx-Immaterial</a>
   

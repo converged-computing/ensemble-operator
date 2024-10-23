@@ -33,7 +33,7 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
-        <link rel="stylesheet" type="text/css" href="_static/sphinx_immaterial_theme.359ec555e2989f00f.min.css?v=379f618b" />
+        <link rel="stylesheet" type="text/css" href="_static/sphinx_immaterial_theme.4b4a8c74e2ff2ab5b.min.css?v=906e2c53" />
         <link rel="stylesheet" type="text/css" href="_static/custom.css?v=d68d0989" />
     <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -438,30 +438,26 @@
 
 <h1 id="the-ensemble-operator">The Ensemble Operator<a class="headerlink" href="#the-ensemble-operator" title="Link to this heading">¶</a></h1>
 <p>Welcome to the Ensemble Operator Documentation!</p>
-<p>The Ensemble Operator is a Kubernetes Cluster <a class="reference external" href="https://kubernetes.io/docs/concepts/extend-kubernetes/operator/">Operator</a>
-that you can install to your cluster to create and control ensembles of worklaods, and change them according to a user-specified algorithm. You can learn more via the links below.</p>
+<p>The Ensemble Operator is a Kubernetes Cluster <a class="reference external" href="https://kubernetes.io/docs/concepts/extend-kubernetes/operator/">Operator</a> that you can install to your cluster to create and control ensembles of worklaods, and change them according to a user-specified ensemble, which is an algorithm dictated by a definition of work (jobs) and rules (triggers and actions). You can learn more via the links below.</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="getting_started/user-guide.html"><span class="std std-doc">User Guide</span></a></p></li>
-<li><p><a class="reference internal" href="getting_started/algorithms.html"><span class="std std-doc">Algorithms</span></a></p></li>
 <li><p><a class="reference internal" href="getting_started/design.html"><span class="std std-doc">Design</span></a></p></li>
 <li><p><a class="reference internal" href="#developer/developer.md"><span class="xref myst">Developer</span></a></p></li>
 </ul>
-<p>Since an entity in an ensemble is typically more complex than a container, while we currently just support a Flux Operator MiniCluster, we could eventually support a larger set of notable Kubernetes abstractions, including <a class="reference external" href="https://kubernetes.io/docs/concepts/workloads/controllers/job/">Job</a>, <a class="reference external" href="https://github.com/kubernetes-sigs/jobset">JobSet</a>, and <a class="reference external" href="https://github.com/kubernetes-sigs/lws">LeaderWorkersSet</a>.</p>
-<p>These seem like a well-scoped set to start. For JobSet, LeaderWorkerSet, and MiniCluster, the corresponding operator for each is required to be installed to your cluster
-to use them.</p>
+<p>Since an entity in an ensemble is typically more complex than a container, while we currently just support a Flux Operator MiniCluster, we will eventually support a larger set of notable Kubernetes abstractions, including <a class="reference external" href="https://kubernetes.io/docs/concepts/workloads/controllers/job/">Job</a>, <a class="reference external" href="https://github.com/kubernetes-sigs/jobset">JobSet</a>, and <a class="reference external" href="https://github.com/kubernetes-sigs/lws">LeaderWorkersSet</a>.</p>
+<p><strong>Important</strong> This operator is in the midst of a refactor, and not production quality yet. Please come back soon.</p>
 <p>If you’d like to ask a question or contribute, please visit the repository <a class="reference external" href="https://github.com/converged-computing/ensemble-operator">on GitHub</a>.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started/index.html">User Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started/user-guide.html">User Guide</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started/algorithms.html">Algorithm Design</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started/design.html">Design</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started/custom-resource-definition.html">Ensemble</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="developer/index.html">Development</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="developer/index.html#algorithms-and-actions-needed">Algorithms and Actions needed…</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developer/index.html#actions-needed">Actions needed…</a></li>
 </ul>
 </li>
 </ul>
@@ -495,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
   <small>
     
       Last update:
-      Apr 24, 2024
+      Oct 23, 2024
     
   </small>
 </div>
@@ -557,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function () {
   
     Created using
     <a href="https://www.sphinx-doc.org/" target="_blank" rel="noopener">Sphinx</a>
-    7.3.7.
+    8.1.3.
      and
     <a href="https://github.com/jbms/sphinx-immaterial/" target="_blank" rel="noopener">Sphinx-Immaterial</a>
   

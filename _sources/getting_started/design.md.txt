@@ -1,6 +1,18 @@
 # Design
 
+## Current Design
+
+This current design moves the responsibility to monitor one or more ensembles from the operator to a service that is deployed alongside the members. It's a much better design to do that, and it also has a refactored [ensemble-python](https://github.com/converged-computing/ensemble-python) library that works external to the operator here (and Kubernetes in general) so you can run Ensembles alongside your workload manager a la carte!
+
 ![img/design.png](img/design.png)
+
+More to come on this soon. Right now we have the ensemble running for Flux inside of Kubernetes, and I'll be adding grow capability soon.
+
+## Design 1
+
+This was the first design. I found it problematic to put the interaction between the operator and ensemble in a sidecar to the MiniCluster, because it meant I could not easily add another member. I also found the frequency of communication between the ensemble member and operator problematic - there was too much expectation or burden on the operator to receive and respond to requests. Finally, I didn't like that the Python library (that orchestrated the ensemble) was tied specifically to the operator. I wanted the library to work outside of it.
+
+![img/design-1.png](img/design-1.png)
 
 ## 1. Create an Ensemble
 
